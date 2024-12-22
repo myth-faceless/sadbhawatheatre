@@ -18,13 +18,17 @@ export const STATUS_CODES = {
   export const ERROR_MESSAGES = {
     INTERNAL_SERVER_ERROR: "Internal Server Error.",
     UNAUTHORIZED: "Access denied. Please login to continue.",
+    USER_NOT_AUTHORIZED: "User not authorized to perform this action.",
     FORBIDDEN: "You don't have enough permission to perform this action.",
     USER_EMAIL_ALREADY_EXIST:
       "User with this email already exist. Please try with other email.",
     USER_PHONE_ALREADY_EXIST:
       "User with this phone already exist. Please try with other phone.",
+
     ERROR_CREATING_USER: "Error Registering User.",
-    ERROR_CREATING_ADMIN: "Error Registering Admin.",
+    ERROR_UPDATING_USER: "Error Updating User.",
+    ERROR_DELETING_USER: "Error deleting User.",
+    
   
     INVALID_EMAIL_PASSWORD: "Invalid Email, Phone or password.",
     INCORRECT_EMAIL_PASSWORD: "Incorrect Email or password.",
@@ -43,16 +47,20 @@ export const STATUS_CODES = {
   
     INVALID_REQUEST_BODY: "Invalid request Body.",
 
+    SESSION_EXPIRED: "Session expired. Please log in again.",
+    EMAIL_NOT_VERIFIED: "Email not verified, please verify your email !",
+    REQUIRED_EMAIL_AND_OTP: "Required email and OTP !",
+    INVALID_OR_EXPIRED_OTP: "OTP invalid or expired"
+
   };
   
   export const SUCCESS_MESSAGES = {
     USER_REGISTERED: "User registered successfully.",
     USER_LOGGED_IN: "User logged in successfully.",
-  
-    ADMIN_REGISTERED: "Admin registered successfully.",
-    ADMIN_LOGGED_IN: "Admin logged in successfully.",
-    ADMIN_LOGGED_OUT: "Admin logged out successfully.",
-    ADMIN_UPDATED: "Admin updated successfully.",
+    USER_LOGGED_OUT: "User logged out successfully.",
+    USER_UPDATED: "User updated successfully.",
+    USER_DELETED: "User deleted successfully.",
+    
   
     PASSWORD_CHANGED: "Password changed successfully.",
   

@@ -21,10 +21,10 @@ app.use(morgan("dev"));
 app.use(cookieParser());
 
 //routes import
-// import { mainRoutes } from "./routes/main.routes.js";
+import { mainRoutes } from "./routes/main.routes.js";
 
 //routes declaration
-// app.use("/api/v1", mainRoutes);
+app.use("/api/v1", mainRoutes);
 
 app.use(notFound);
 app.use(errorHandler);
