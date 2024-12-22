@@ -1,0 +1,28 @@
+# Node.js / npm / Yarn
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Compiled output
+dist/
+
+# Environment variables
+.env
+
+# Editor and IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Logs and debugging
+*.log
+logs/
+
+# Dependency lock files
+package-lock.json
+yarn.lock
+
+# Miscellaneous
+.DS_Store
+Thumbs.db
