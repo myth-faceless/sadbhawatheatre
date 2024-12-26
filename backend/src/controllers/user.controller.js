@@ -18,10 +18,7 @@ const generateToken = async (userId) => {
   try {
     const user = await User.findById(userId);
     if (!user) {
-      throw new ApiError(
-        STATUS_CODES.NOT_FOUND,
-        ERROR_MESSAGES.USER_NOT_FOUND
-      );
+      throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
     }
     const accessToken = user.generateAccessToken();
     return { accessToken };
@@ -81,16 +78,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // Send OTP via email
     const subject = "Verify Your Email";
-    const text = `Welcome to ${process.env.NAME }, ${user.fullName}! Your OTP for email verification is ${otp}. It expires in 15 minutes.`;
+    const text = `Welcome to ${process.env.NAME}, ${user.fullName}! Your OTP for email verification is ${otp}. It expires in 15 minutes.`;
 
     await sendEmail(user.email, subject, text);
-
- 
 
     const response = new ApiResponse(
       STATUS_CODES.CREATED,
       SUCCESS_MESSAGES.USER_REGISTERED,
-      { userId: user._id, message: "Check your email for the OTP."}
+      { userId: user._id, message: "Check your email for the OTP." }
     );
     res.status(201).json(response);
   } catch (err) {
@@ -137,15 +132,16 @@ const verifyEmail = asyncHandler(async (req, res) => {
   user.otpExpiry = null; // Clear the expiry after verification
   await user.save();
 
-  res.status(STATUS_CODES.SUCCESS).json(
-    new ApiResponse(
-      STATUS_CODES.SUCCESS,
-      SUCCESS_MESSAGES.EMAIL_VERIFIED,
-      "Your email has been successfully verified!"
-    )
-  );
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        SUCCESS_MESSAGES.EMAIL_VERIFIED,
+        "Your email has been successfully verified!"
+      )
+    );
 });
-
 
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.validateBody;
@@ -298,7 +294,6 @@ const updateUser = asyncHandler(async (req, res, next) => {
     res.status(500).json(error);
   }
 });
-
 
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.validateBody;

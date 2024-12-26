@@ -3,23 +3,25 @@ import { Router } from "express";
 import { upload } from "../middlewares/multer.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
-import { verifyJWT, checkEmailVerified } from "../middlewares/auth.middleware.js";
-import { 
+import {
+  verifyJWT,
+  checkEmailVerified,
+} from "../middlewares/auth.middleware.js";
+import {
   changeUserPasswordSchema,
-  loginUserSchema, 
-  registerUserSchema, 
-  updateUserSchema 
+  loginUserSchema,
+  registerUserSchema,
+  updateUserSchema,
 } from "../validations/user.validation.js";
 
-import { 
-  registerUser, 
-  verifyEmail, 
-  loginUser, 
-  logoutUser, 
-  updateUser, 
-  changeUserPassword
- } from "../controllers/user.controller.js";
-
+import {
+  registerUser,
+  verifyEmail,
+  loginUser,
+  logoutUser,
+  updateUser,
+  changeUserPassword,
+} from "../controllers/user.controller.js";
 
 const router = Router();
 
@@ -46,6 +48,5 @@ router
 router
   .route("/changepassword")
   .post(verifyJWT, validate(changeUserPasswordSchema), changeUserPassword);
-
 
 export { router as userRoutes };

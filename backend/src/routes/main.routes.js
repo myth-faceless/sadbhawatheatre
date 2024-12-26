@@ -6,10 +6,8 @@ import { userRoutes } from "./user.routes.js";
 // import { adminRoutes } from "./admin.routes.js";
 
 //routes declaration
-router.use("/", userRoutes)
+router.use("/", userRoutes);
 
 // router.use("/admin", adminRoutes)
 
-
-
-export { router as mainRoutes};
+export { router as mainRoutes };
