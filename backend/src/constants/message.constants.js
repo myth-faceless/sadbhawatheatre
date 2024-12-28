@@ -42,6 +42,8 @@ export const ERROR_MESSAGES = {
   CLOUDINARY_UPLOAD_FAILED: "Failed to upload to cloudinary",
   CLOUDINARY_AVATAR_UPLOAD_FAILED: "Failed to upload avatar to cloudinary",
 
+  INVALID_FILE_TYPE: "Invalid file type, Please use JPEG, PNG or GIF ",
+
   TOKEN_GENEREATION: "Something went wrong while generating access token",
 
   INVALID_REQUEST_BODY: "Invalid request Body.",

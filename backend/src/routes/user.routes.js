@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import { upload } from "../middlewares/multer.middleware.js";
+import { uploadWithErrorHandling } from "../middlewares/multer.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
 import {
@@ -28,7 +28,11 @@ const router = Router();
 //public user routes
 router
   .route("/register")
-  .post(upload.single("avatar"), validate(registerUserSchema), registerUser);
+  .post(
+    uploadWithErrorHandling("avatar"),
+    validate(registerUserSchema),
+    registerUser
+  );
 
 router.route("/verify-email").post(verifyEmail);
 
@@ -41,7 +45,7 @@ router
   .route("/:userId")
   .put(
     verifyJWT,
-    upload.single("avatar"),
+    uploadWithErrorHandling("avatar"),
     validate(updateUserSchema),
     updateUser
   );
