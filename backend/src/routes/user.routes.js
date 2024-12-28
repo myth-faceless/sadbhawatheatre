@@ -51,6 +51,6 @@ router
   );
 router
   .route("/updatepassword")
-  .post(verifyJWT, validate(changeUserPasswordSchema), changeUserPassword);
+  .put(verifyJWT, validate(changeUserPasswordSchema), changeUserPassword);
 
 export { router as userRoutes };
