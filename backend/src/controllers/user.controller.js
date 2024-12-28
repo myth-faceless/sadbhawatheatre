@@ -212,7 +212,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 const updateUser = asyncHandler(async (req, res, next) => {
   try {
     const { fullName, phoneNumber, email } = req.validateBody;
-    const { userId } = req.params;
+    const userId = req.user.id;
 
     // Check if the user exists
     const user = await User.findById(userId);
@@ -225,7 +225,7 @@ const updateUser = asyncHandler(async (req, res, next) => {
     let emailUpdated = false;
 
     // Handle email update
-    if (email && email == user.email) {
+    if (email && email !== user.email) {
       const existingUser = await User.findOne({ email });
       if (existingUser) {
         return res
@@ -238,9 +238,10 @@ const updateUser = asyncHandler(async (req, res, next) => {
       const saltRounds = 10;
       const hashedOtp = await bcrypt.hash(otp, saltRounds);
 
-      user.otp = hashedOtp;
+      // Mark email as unverified and set expiry time for OTP
+      user.isEmailVerified = false; // Set email verification to false
+      user.otp = hashedOtp; // Save hashed OTP
       user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
-      user.isEmailVerified = false; // Mark as unverified
       user.email = email; // Update the email
 
       // Send OTP to the new email
@@ -298,12 +299,14 @@ const updateUser = asyncHandler(async (req, res, next) => {
 const changeUserPassword = asyncHandler(async (req, res) => {
   const { oldPassword, newPassword } = req.validateBody;
 
+  // Find the user by the authenticated user's ID
   const user = await User.findById(req.user?.id);
   if (!user) {
     throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
   }
-  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
 
+  // Check if the old password is correct
+  const isPasswordCorrect = await user.isPasswordCorrect(oldPassword);
   if (!isPasswordCorrect) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -311,9 +314,11 @@ const changeUserPassword = asyncHandler(async (req, res) => {
     );
   }
 
-  user.password = newPassword;
+  // Hash the new password before saving it
+  user.password = await bcrypt.hash(newPassword, 10); // 10 salt rounds for hashing
   await user.save();
 
+  // Return a successful response
   return res
     .status(STATUS_CODES.SUCCESS)
     .json(

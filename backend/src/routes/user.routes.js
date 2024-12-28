@@ -42,7 +42,7 @@ router.route("/login").post(validate(loginUserSchema), loginUser);
 router.route("/logout").post(verifyJWT, logoutUser);
 
 router
-  .route("/:userId")
+  .route("/updateprofile")
   .put(
     verifyJWT,
     uploadWithErrorHandling("avatar"),
@@ -50,7 +50,7 @@ router
     updateUser
   );
 router
-  .route("/changepassword")
+  .route("/updatepassword")
   .post(verifyJWT, validate(changeUserPasswordSchema), changeUserPassword);
 
 export { router as userRoutes };
