@@ -25,6 +25,7 @@ import {
   changeUserPassword,
   forgotPassword,
   resetPassword,
+  verifyPendingEmail,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -50,6 +51,7 @@ router
 //-------------------------protected user routes-------------------------------
 
 router.route("/logout").post(verifyJWT, logoutUser);
+router.route("/verify-pending-email").post(verifyJWT, verifyPendingEmail);
 
 router
   .route("/updateprofile")
