@@ -68,4 +68,6 @@ export const SUCCESS_MESSAGES = {
   EMAIL_SENT_IF_REGISTERED:
     "If that email is registered, a reset link has been sent.",
   RESET_PASSWORD_EMAIL_SENT: "Password reset email send successfully",
+
+  ALL_USER_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
 };
