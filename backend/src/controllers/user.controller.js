@@ -2,7 +2,10 @@ import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiErrors.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadFilesToCloudinary,
+  deleteFileFromCloudinary,
+} from "../utils/cloudinary.js";
 import { USER_ICON } from "../constants/app.constants.js";
 import {
   STATUS_CODES,
@@ -42,12 +45,15 @@ const registerUser = asyncHandler(async (req, res) => {
         .json(ApiResponse.error(ERROR_MESSAGES.USER_EMAIL_ALREADY_EXIST));
     }
 
-    const avatarLocalPath = req.file?.path;
-    let avatarUrl = null;
+    let avatarUrl = USER_ICON;
+    let avatarPublicId = null;
+
+    const avatarLocalPath = req.file;
     if (avatarLocalPath) {
       try {
-        const response = await uploadOnCloudinary(avatarLocalPath);
-        avatarUrl = response.secure_url;
+        const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
+        avatarUrl = uploadedAvatar.url;
+        avatarPublicId = uploadedAvatar.public_id;
       } catch (uploadError) {
         throw new ApiError(
           STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -55,8 +61,6 @@ const registerUser = asyncHandler(async (req, res) => {
           [uploadError.message]
         );
       }
-    } else {
-      avatarUrl = USER_ICON;
     }
 
     const user = await User.create({
@@ -65,6 +69,7 @@ const registerUser = asyncHandler(async (req, res) => {
       email,
       password,
       avatar: avatarUrl,
+      cloudinaryPublicId: avatarPublicId,
     });
 
     // Generate OTP
@@ -73,10 +78,10 @@ const registerUser = asyncHandler(async (req, res) => {
     const hashedOtp = await bcrypt.hash(otp, saltRounds);
 
     user.otp = hashedOtp;
-    user.otpExpiry = Date.now() + 15 * 60 * 1000; // Expires in 15 minutes
+    user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes
     await user.save();
 
-    // Send OTP via email
+    // Send OTP email
     const subject = "Verify Your Email";
     const text = `Welcome to ${process.env.NAME}, ${user.fullName}! Your OTP for email verification is ${otp}. It expires in 15 minutes.`;
 
@@ -253,13 +258,17 @@ const updateUser = asyncHandler(async (req, res, next) => {
     }
 
     // Handle avatar update if a new file is uploaded
-    const avatarLocalPath = req.file?.path;
+    const avatarLocalPath = req.file;
     let avatarUrl = user.avatar;
 
     if (avatarLocalPath) {
+      if (user.cloudinaryPublicId) {
+        await deleteFileFromCloudinary(user.cloudinaryPublicId);
+      }
       try {
-        const response = await uploadOnCloudinary(avatarLocalPath);
-        avatarUrl = response.secure_url;
+        const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
+        user.avatar = uploadedAvatar.url;
+        user.cloudinaryPublicId = uploadedAvatar.public_id;
       } catch (uploadError) {
         throw new ApiError(
           STATUS_CODES.INTERNAL_SERVER_ERROR,
@@ -272,7 +281,6 @@ const updateUser = asyncHandler(async (req, res, next) => {
     // Update user details
     user.fullName = fullName || user.fullName;
     user.phoneNumber = phoneNumber || user.phoneNumber;
-    user.avatar = avatarUrl;
 
     await user.save();
 

@@ -32,27 +32,34 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 // Middleware to handle file upload with error handling
-export const uploadWithErrorHandling = (fieldName) => (req, res, next) => {
-  const uploadHandler = upload.single(fieldName);
+export const uploadWithErrorHandling =
+  (fieldName, multiple = false) =>
+  (req, res, next) => {
+    const uploadHandler = multiple
+      ? upload.array(fieldName)
+      : upload.single(fieldName);
 
-  uploadHandler(req, res, (err) => {
-    if (err) {
-      if (err instanceof multer.MulterError) {
-        next(
-          new ApiError(STATUS_CODES.BAD_REQUEST, `Multer error: ${err.message}`)
-        );
-      } else if (err) {
-        next(
-          new ApiError(
-            STATUS_CODES.BAD_REQUEST,
-            `File upload failed: ${err.message}`
-          )
-        );
+    uploadHandler(req, res, (err) => {
+      if (err) {
+        if (err instanceof multer.MulterError) {
+          next(
+            new ApiError(
+              STATUS_CODES.BAD_REQUEST,
+              `Multer error: ${err.message}`
+            )
+          );
+        } else if (err) {
+          next(
+            new ApiError(
+              STATUS_CODES.BAD_REQUEST,
+              `File upload failed: ${err.message}`
+            )
+          );
+        } else {
+          next();
+        }
       } else {
         next();
       }
-    } else {
-      next();
-    }
-  });
-};
+    });
+  };

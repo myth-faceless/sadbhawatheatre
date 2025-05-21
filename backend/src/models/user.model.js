@@ -31,6 +31,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: USER_ICON,
     },
+    cloudinaryPublicId: {
+      type: String,
+      default: null,
+    },
     isEmailVerified: {
       type: Boolean,
       default: false,
