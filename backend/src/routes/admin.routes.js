@@ -3,11 +3,7 @@ import { Router } from "express";
 import { uploadWithErrorHandling } from "../middlewares/multer.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
-import {
-  verifyJWT,
-  checkEmailVerified,
-  verifyRole,
-} from "../middlewares/auth.middleware.js";
+import { verifyJWT, verifyRole } from "../middlewares/auth.middleware.js";
 
 import {
   loginAdminSchema,
@@ -24,35 +20,45 @@ import {
   changePassword,
   forgotPassword,
   resetPassword,
+  getAllUser,
+  verifyPendingEmail,
 } from "../controllers/admin.controller.js";
 
 const router = Router();
 
-//public admin routes
+//------------------------------public admin routes-------------------------------
 
 router.route("/verify-email").post(verifyEmail);
 
-router
-  .route("/login")
-  .post(validate(loginAdminSchema), verifyRole("admin"), loginAdmin);
+router.route("/login").post(validate(loginAdminSchema), loginAdmin);
 router.route("/forgot-password").post(forgotPassword);
 router
   .route("/reset-password/:token")
   .post(validate(resetAdminPasswordSchema), resetPassword);
 
-//protected user routes
-router.route("/logout").post(verifyJWT, logoutAdmin);
+//---------------------------protected user routes--------------------------------
 
-router
+const protectedAdminRouter = Router();
+protectedAdminRouter.use(verifyJWT, verifyRole("admin"));
+
+protectedAdminRouter.route("/logout").post(logoutAdmin);
+
+protectedAdminRouter
   .route("/updateprofile")
   .put(
-    verifyJWT,
     uploadWithErrorHandling("avatar"),
     validate(updateAdminSchema),
     updateAdmin
   );
-router
+protectedAdminRouter
   .route("/updatepassword")
-  .put(verifyJWT, validate(changeAdminPasswordSchema), changePassword);
+  .put(validate(changeAdminPasswordSchema), changePassword);
 
+protectedAdminRouter.route("/verify-pending-email").post(verifyPendingEmail);
+
+//user manipulation from admin
+
+protectedAdminRouter.route("/getallusers").get(getAllUser);
+
+router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
