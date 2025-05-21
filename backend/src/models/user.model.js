@@ -39,6 +39,10 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    pendingEmail: {
+      type: String,
+      default: null,
+    },
     otp: {
       type: String,
       default: null,
