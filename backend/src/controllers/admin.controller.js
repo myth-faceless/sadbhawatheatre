@@ -223,7 +223,7 @@ const updateAdmin = asyncHandler(async (req, res, next) => {
       user.isEmailVerified = false; // Set email verification to false
       user.otp = hashedOtp; // Save hashed OTP
       user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
-      user.email = email; // Update the email
+      user.pendingEmail = email; // Update the email
 
       // Send OTP to the new email
       const subject = "Verify Your Updated Email";
