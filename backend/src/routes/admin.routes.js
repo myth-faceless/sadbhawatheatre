@@ -22,6 +22,7 @@ import {
   resetPassword,
   getAllUser,
   verifyPendingEmail,
+  getUserById,
 } from "../controllers/admin.controller.js";
 
 const router = Router();
@@ -59,6 +60,7 @@ protectedAdminRouter.route("/verify-pending-email").post(verifyPendingEmail);
 //user manipulation from admin
 
 protectedAdminRouter.route("/getallusers").get(getAllUser);
+protectedAdminRouter.route("/getuser/:id").get(getUserById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

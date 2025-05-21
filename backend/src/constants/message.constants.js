@@ -57,12 +57,15 @@ export const ERROR_MESSAGES = {
   TOKEN_AND_PASSWORD_REQUIRED: "Token and new password are required",
   NO_PENDING_EMAIL_FOUND: "No Pending email verification found!",
   EXPIRED_OTP: "OTP expired. Please request a new verification code",
+
+  INVALID_USER_ID: "Invalid User ID~",
 };
 
 export const SUCCESS_MESSAGES = {
   USER_REGISTERED: "User registered successfully.",
   USER_LOGGED_IN: "User logged in successfully.",
   USER_LOGGED_OUT: "User logged out successfully.",
+  USER_FETCHED: "User details fetched successfully",
   USER_UPDATED: "User updated successfully.",
   USER_DELETED: "User deleted successfully.",
 

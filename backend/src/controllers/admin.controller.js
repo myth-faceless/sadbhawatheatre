@@ -419,6 +419,34 @@ const getAllUser = asyncHandler(async (req, res) => {
     );
 });
 
+const getUserById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  //validate mongoDB ObjectId:
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_USER_ID)
+    );
+  }
+
+  const user = await User.findById(id).select(
+    "-password -otp -otpExpiry -resetPasswordToken -resetPasswordExpiry"
+  );
+
+  if (!user) {
+    return next(
+      new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND)
+    );
+  }
+  const response = new ApiResponse(
+    STATUS_CODES.SUCCESS,
+    user,
+    SUCCESS_MESSAGES.USER_FETCHED
+  );
+
+  res.status(STATUS_CODES.SUCCESS).json(response);
+});
+
 export {
   verifyEmail,
   verifyPendingEmail,
@@ -429,4 +457,5 @@ export {
   forgotPassword,
   resetPassword,
   getAllUser,
+  getUserById,
 };
