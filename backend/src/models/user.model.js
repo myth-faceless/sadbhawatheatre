@@ -22,10 +22,10 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    role: { 
+    role: {
       type: String,
-      enum: ["admin", "user"], 
-      default: "user" 
+      enum: ["admin", "user"],
+      default: "user",
     },
     avatar: {
       type: String,
@@ -40,6 +40,14 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
     otpExpiry: {
+      type: Date,
+      default: null,
+    },
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpiry: {
       type: Date,
       default: null,
     },

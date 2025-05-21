@@ -38,3 +38,9 @@ export const changeUserPasswordSchema = Joi.object({
     .pattern(/^[a-zA-Z0-9]{3,30}$/)
     .required(),
 });
+
+export const resetUserPasswordSchema = Joi.object({
+  newPassword: Joi.string()
+    .pattern(/^[a-zA-Z0-9]{3,30}$/)
+    .required(),
+});

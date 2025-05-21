@@ -326,6 +326,102 @@ const changeUserPassword = asyncHandler(async (req, res) => {
     );
 });
 
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.EMAIL_REQUIRED);
+  }
+
+  const user = await User.findOne({ email });
+  if (!user) {
+    return res
+      .status(STATUS_CODES.SUCCESS)
+      .json(
+        new ApiResponse(
+          STATUS_CODES.SUCCESS,
+          SUCCESS_MESSAGES.EMAIL_SENT_IF_REGISTERED
+        )
+      );
+  }
+
+  //generate random password reset token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  //hash token before saving to DB for security reasons.
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  //set token and expiry
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpiry = Date.now() + 15 * 60 * 1000; // for 15 min
+  await user.save();
+
+  //make reset link
+  const resetLink = `${process.env.BASE_URL}/reset-password/${resetToken}`;
+
+  // email structure
+  const subject = "Password Reset Request";
+  const text = `Hi ${user.fullName}, \n\nYou requested a password reset. Please use this link below to reset your password. This link if valid for 15 minutes from now:\n\n ${resetLink} \n\nIf you didn't request this, please ignore this email. \n\n Thanks !`;
+
+  //send email
+  await sendEmail(user.email, subject, text);
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        SUCCESS_MESSAGES.RESET_PASSWORD_EMAIL_SENT
+      )
+    );
+});
+
+const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { newPassword } = req.body;
+
+  if (!token || !newPassword) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.TOKEN_AND_PASSWORD_REQUIRED
+    );
+  }
+
+  // hash the token to match db
+  const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+  //find user with valid token which is not expired
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpiry: { $gt: Date.now() },
+  });
+
+  if (!user) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_OR_EXPIRED_OTP
+    );
+  }
+
+  //set new password
+  user.password = newPassword;
+
+  //clear reset tokens
+  user.resetPasswordToken = null;
+  user.resetPasswordExpiry = null;
+
+  await user.save();
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(STATUS_CODES.SUCCESS, SUCCESS_MESSAGES.PASSWORD_CHANGED)
+    );
+});
+
 export {
   registerUser,
   verifyEmail,
@@ -333,4 +429,6 @@ export {
   logoutUser,
   updateUser,
   changeUserPassword,
+  forgotPassword,
+  resetPassword,
 };

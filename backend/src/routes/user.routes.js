@@ -7,10 +7,12 @@ import {
   verifyJWT,
   checkEmailVerified,
 } from "../middlewares/auth.middleware.js";
+
 import {
   changeUserPasswordSchema,
   loginUserSchema,
   registerUserSchema,
+  resetUserPasswordSchema,
   updateUserSchema,
 } from "../validations/user.validation.js";
 
@@ -21,6 +23,8 @@ import {
   logoutUser,
   updateUser,
   changeUserPassword,
+  forgotPassword,
+  resetPassword,
 } from "../controllers/user.controller.js";
 
 const router = Router();
@@ -37,6 +41,10 @@ router
 router.route("/verify-email").post(verifyEmail);
 
 router.route("/login").post(validate(loginUserSchema), loginUser);
+router.route("/forgot-password").post(forgotPassword);
+router
+  .route("/reset-password/:token")
+  .post(validate(resetUserPasswordSchema), resetPassword);
 
 //protected user routes
 router.route("/logout").post(verifyJWT, logoutUser);

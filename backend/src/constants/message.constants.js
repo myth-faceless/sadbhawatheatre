@@ -49,10 +49,12 @@ export const ERROR_MESSAGES = {
   INVALID_REQUEST_BODY: "Invalid request Body.",
 
   SESSION_EXPIRED: "Session expired. Please log in again.",
+  EMAIL_REQUIRED: "Email is reqired",
   EMAIL_NOT_VERIFIED: "Email not verified, please verify your email !",
   REQUIRED_EMAIL_AND_OTP: "Required email and OTP !",
   INVALID_OR_EXPIRED_OTP: "OTP invalid or expired",
   INVALID_OTP: "Invalid OTP, check your OPT again !",
+  TOKEN_AND_PASSWORD_REQUIRED: "Token and new password are required",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -63,4 +65,7 @@ export const SUCCESS_MESSAGES = {
   USER_DELETED: "User deleted successfully.",
 
   PASSWORD_CHANGED: "Password changed successfully.",
+  EMAIL_SENT_IF_REGISTERED:
+    "If that email is registered, a reset link has been sent.",
+  RESET_PASSWORD_EMAIL_SENT: "Password reset email send successfully",
 };
