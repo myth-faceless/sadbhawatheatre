@@ -148,6 +148,52 @@ const verifyEmail = asyncHandler(async (req, res) => {
     );
 });
 
+const verifyPendingEmail = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { otp } = req.body;
+  console.log(otp);
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
+  }
+  if (!user.otp || !user.otpExpiry || !user.pendingEmail) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.NO_PENDING_EMAIL_FOUND
+    );
+  }
+
+  if (Date.now() > user.otpExpiry) {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.EXPIRED_OTP);
+  }
+
+  const isOtpValid = await bcrypt.compare(otp, user.otp);
+
+  if (!isOtpValid) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_OR_EXPIRED_OTP
+    );
+  }
+
+  user.email = user.pendingEmail;
+  user.pendingEmail = null;
+
+  user.otp = null;
+  user.otpExpiry = null;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Email verified and updated successfully !",
+    data: {
+      email: user.email,
+    },
+  });
+});
+
 const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.validateBody;
 
@@ -244,10 +290,10 @@ const updateUser = asyncHandler(async (req, res, next) => {
       const hashedOtp = await bcrypt.hash(otp, saltRounds);
 
       // Mark email as unverified and set expiry time for OTP
-      user.isEmailVerified = false; // Set email verification to false
+      user.isEmailVerified = true;
       user.otp = hashedOtp; // Save hashed OTP
       user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
-      user.email = email; // Update the email
+      user.pendingEmail = email; // just make email pending unless user verify it
 
       // Send OTP to the new email
       const subject = "Verify Your Updated Email";
@@ -285,7 +331,7 @@ const updateUser = asyncHandler(async (req, res, next) => {
     await user.save();
 
     const responseMessage = emailUpdated
-      ? "User updated successfully. Please verify your new email address."
+      ? "User updated successfully. Please enter otp sent to your new email to verify your email address."
       : "User updated successfully.";
 
     const response = new ApiResponse(
@@ -433,6 +479,7 @@ const resetPassword = asyncHandler(async (req, res) => {
 export {
   registerUser,
   verifyEmail,
+  verifyPendingEmail,
   loginUser,
   logoutUser,
   updateUser,
