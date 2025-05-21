@@ -55,6 +55,8 @@ export const ERROR_MESSAGES = {
   INVALID_OR_EXPIRED_OTP: "OTP invalid or expired",
   INVALID_OTP: "Invalid OTP, check your OPT again !",
   TOKEN_AND_PASSWORD_REQUIRED: "Token and new password are required",
+  NO_PENDING_EMAIL_FOUND: "No Pending email verification found!",
+  EXPIRED_OTP: "OTP expired. Please request a new verification code",
 };
 
 export const SUCCESS_MESSAGES = {
