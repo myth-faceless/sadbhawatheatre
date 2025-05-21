@@ -29,7 +29,8 @@ import {
 
 const router = Router();
 
-//public user routes
+//------------------------public user routes-------------------------------
+
 router
   .route("/register")
   .post(
@@ -46,7 +47,8 @@ router
   .route("/reset-password/:token")
   .post(validate(resetUserPasswordSchema), resetPassword);
 
-//protected user routes
+//-------------------------protected user routes-------------------------------
+
 router.route("/logout").post(verifyJWT, logoutUser);
 
 router
@@ -55,6 +57,7 @@ router
     verifyJWT,
     uploadWithErrorHandling("avatar"),
     validate(updateUserSchema),
+    checkEmailVerified,
     updateUser
   );
 router
