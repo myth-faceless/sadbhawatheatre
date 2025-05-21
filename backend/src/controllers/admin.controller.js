@@ -78,6 +78,52 @@ const verifyEmail = asyncHandler(async (req, res) => {
     );
 });
 
+const verifyPendingEmail = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+  const { otp } = req.body;
+  console.log(otp);
+
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
+  }
+  if (!user.otp || !user.otpExpiry || !user.pendingEmail) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.NO_PENDING_EMAIL_FOUND
+    );
+  }
+
+  if (Date.now() > user.otpExpiry) {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.EXPIRED_OTP);
+  }
+
+  const isOtpValid = await bcrypt.compare(otp, user.otp);
+
+  if (!isOtpValid) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      ERROR_MESSAGES.INVALID_OR_EXPIRED_OTP
+    );
+  }
+
+  user.email = user.pendingEmail;
+  user.pendingEmail = null;
+
+  user.otp = null;
+  user.otpExpiry = null;
+
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: "Email verified and updated successfully !",
+    data: {
+      email: user.email,
+    },
+  });
+});
+
 const loginAdmin = asyncHandler(async (req, res) => {
   const { email, password } = req.validateBody;
 
@@ -360,14 +406,27 @@ const resetPassword = asyncHandler(async (req, res) => {
     );
 });
 
-const getAllUser = asyncHandler(async (req, res) => {});
+const getAllUser = asyncHandler(async (req, res) => {
+  const users = await User.find().select("-password -otp -otpExpiry");
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        users,
+        SUCCESS_MESSAGES.ALL_USER_FETCHED_SUCCESSFULLY
+      )
+    );
+});
 
 export {
   verifyEmail,
+  verifyPendingEmail,
   loginAdmin,
   logoutAdmin,
   updateAdmin,
   changePassword,
   forgotPassword,
   resetPassword,
+  getAllUser,
 };
