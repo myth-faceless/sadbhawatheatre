@@ -111,7 +111,6 @@ const getTeamMemberById = asyncHandler(async (req, res, next) => {
 const updateTeamMemberById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { name, role, bio, socialLinks } = req.body;
-  const photoFile = req.file;
 
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
     return next(
@@ -124,15 +123,23 @@ const updateTeamMemberById = asyncHandler(async (req, res, next) => {
   if (!member) {
     return next(new ApiError(STATUS_CODES.NOT_FOUND, "Team member not found"));
   }
+  const avatarLocalPath = req.file;
 
-  if (photoFile) {
-    if (member.photo?.public_id) {
-      await deleteFileFromCloudinary(member.photo.public_id);
+  if (avatarLocalPath) {
+    if (member.cloudinaryPublicId) {
+      await deleteFileFromCloudinary(user.cloudinaryPublicId);
     }
-
-    const [uploadedPhoto] = await uploadFilesToCloudinary(photoFile);
-    member.photo.url = uploadedPhoto.url;
-    member.photo.public_id = uploadedPhoto.public_id;
+    try {
+      const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
+      member.photo.url = uploadedAvatar.url;
+      member.photo.public_id = uploadedAvatar.public_id;
+    } catch (uploadError) {
+      throw new ApiError(
+        STATUS_CODES.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.CLOUDINARY_AVATAR_UPLOAD_FAILED,
+        [uploadError.message]
+      );
+    }
   }
 
   member.name = name || member.name;
