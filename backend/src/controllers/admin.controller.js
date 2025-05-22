@@ -59,7 +59,7 @@ const getUserById = asyncHandler(async (req, res) => {
 });
 
 const updateUserById = asyncHandler(async (req, res) => {
-  console.log("Body received:", req.validateBody);
+  // console.log("Body received:", req.validateBody);
   const { id } = req.params;
   const { fullName, phoneNumber, email } = req.validateBody;
 
