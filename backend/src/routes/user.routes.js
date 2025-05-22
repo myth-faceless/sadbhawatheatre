@@ -3,67 +3,36 @@ import { Router } from "express";
 import { uploadWithErrorHandling } from "../middlewares/multer.middleware.js";
 import { validate } from "../middlewares/validate.middleware.js";
 
-import {
-  verifyJWT,
-  checkEmailVerified,
-} from "../middlewares/auth.middleware.js";
+import { verifyJWT } from "../middlewares/auth.middleware.js";
 
 import {
-  changeUserPasswordSchema,
-  loginUserSchema,
-  registerUserSchema,
-  resetUserPasswordSchema,
-  updateUserSchema,
-} from "../validations/user.validation.js";
-
+  changePasswordSchema,
+  updateSchema,
+} from "../validations/global.validation.js";
 import {
-  registerUser,
-  verifyEmail,
-  loginUser,
-  logoutUser,
-  updateUser,
-  changeUserPassword,
-  forgotPassword,
-  resetPassword,
+  logout,
+  changePassword,
+  updateProfile,
   verifyPendingEmail,
-} from "../controllers/user.controller.js";
+} from "../controllers/auth.controller.js";
 
 const router = Router();
 
-//------------------------public user routes-------------------------------
-
-router
-  .route("/register")
-  .post(
-    uploadWithErrorHandling("avatar"),
-    validate(registerUserSchema),
-    registerUser
-  );
-
-router.route("/verify-email").post(verifyEmail);
-
-router.route("/login").post(validate(loginUserSchema), loginUser);
-router.route("/forgot-password").post(forgotPassword);
-router
-  .route("/reset-password/:token")
-  .post(validate(resetUserPasswordSchema), resetPassword);
-
 //-------------------------protected user routes-------------------------------
 
-router.route("/logout").post(verifyJWT, logoutUser);
-router.route("/verify-pending-email").post(verifyJWT, verifyPendingEmail);
+router.route("/logout").post(verifyJWT, logout);
 
 router
   .route("/updateprofile")
   .put(
     verifyJWT,
     uploadWithErrorHandling("avatar"),
-    validate(updateUserSchema),
-    checkEmailVerified,
-    updateUser
+    validate(updateSchema),
+    updateProfile
   );
+router.route("/verify-pending-email").post(verifyJWT, verifyPendingEmail);
 router
   .route("/updatepassword")
-  .put(verifyJWT, validate(changeUserPasswordSchema), changeUserPassword);
+  .put(verifyJWT, validate(changePasswordSchema), changePassword);
 
 export { router as userRoutes };

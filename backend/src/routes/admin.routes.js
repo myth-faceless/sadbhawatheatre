@@ -6,58 +6,55 @@ import { validate } from "../middlewares/validate.middleware.js";
 import { verifyJWT, verifyRole } from "../middlewares/auth.middleware.js";
 
 import {
-  loginAdminSchema,
-  updateAdminSchema,
-  changeAdminPasswordSchema,
-  resetAdminPasswordSchema,
-} from "../validations/admin.validation.js";
+  loginSchema,
+  updateSchema,
+  changePasswordSchema,
+  resetPasswordSchema,
+} from "../validations/global.validation.js";
 
 import {
-  verifyEmail,
-  loginAdmin,
-  logoutAdmin,
-  updateAdmin,
-  changePassword,
-  forgotPassword,
-  resetPassword,
-  getAllUser,
+  login,
+  logout,
+  updateProfile,
   verifyPendingEmail,
-  getUserById,
-} from "../controllers/admin.controller.js";
+  changePassword,
+} from "../controllers/auth.controller.js";
+
+import { getAllUser, getUserById } from "../controllers/admin.controller.js";
 
 const router = Router();
+//-------------------------- public admin route-----------------------------------
 
-//------------------------------public admin routes-------------------------------
+router.route("/login").post(
+  (req, res, next) => {
+    req.expectedRole = "admin";
+    next();
+  },
+  validate(loginSchema),
+  login
+);
 
-router.route("/verify-email").post(verifyEmail);
-
-router.route("/login").post(validate(loginAdminSchema), loginAdmin);
-router.route("/forgot-password").post(forgotPassword);
-router
-  .route("/reset-password/:token")
-  .post(validate(resetAdminPasswordSchema), resetPassword);
-
-//---------------------------protected user routes--------------------------------
+//---------------------------protected admin routes--------------------------------
 
 const protectedAdminRouter = Router();
 protectedAdminRouter.use(verifyJWT, verifyRole("admin"));
 
-protectedAdminRouter.route("/logout").post(logoutAdmin);
+protectedAdminRouter.route("/logout").post(logout);
 
 protectedAdminRouter
   .route("/updateprofile")
   .put(
     uploadWithErrorHandling("avatar"),
-    validate(updateAdminSchema),
-    updateAdmin
+    validate(updateSchema),
+    updateProfile
   );
 protectedAdminRouter
   .route("/updatepassword")
-  .put(validate(changeAdminPasswordSchema), changePassword);
+  .put(validate(changePasswordSchema), changePassword);
 
 protectedAdminRouter.route("/verify-pending-email").post(verifyPendingEmail);
 
-//user manipulation from admin
+//------------------user manipulation from admin--------------------------------
 
 protectedAdminRouter.route("/getallusers").get(getAllUser);
 protectedAdminRouter.route("/getuser/:id").get(getUserById);
