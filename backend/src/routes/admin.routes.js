@@ -26,6 +26,7 @@ import {
   getUserById,
   updateUserById,
 } from "../controllers/admin.controller.js";
+import { getAllTeamMembers } from "../controllers/team.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -72,5 +73,10 @@ protectedAdminRouter
   );
 
 protectedAdminRouter.route("/deleteuser/:id").delete(deleteUserById);
+
+//-----------------------------team member manipuulation----------------------------
+
+protectedAdminRouter.route("/getallmember").get(getAllTeamMembers);
+
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

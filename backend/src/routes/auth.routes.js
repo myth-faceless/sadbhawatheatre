@@ -25,6 +25,7 @@ import {
   resetPassword,
   verifyPendingEmail,
 } from "../controllers/auth.controller.js";
+import { getAllTeamMembers } from "../controllers/team.controller.js";
 
 const router = Router();
 
@@ -39,6 +40,8 @@ router.route("/forgot-password").post(forgotPassword);
 router
   .route("/reset-password/:token")
   .post(validate(resetPasswordSchema), resetPassword);
+
+router.route("/getallmember").get(getAllTeamMembers);
 
 //-------------------------protected global routes-------------------------------
 
