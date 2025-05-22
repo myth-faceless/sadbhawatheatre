@@ -20,7 +20,12 @@ import {
   changePassword,
 } from "../controllers/auth.controller.js";
 
-import { getAllUser, getUserById } from "../controllers/admin.controller.js";
+import {
+  deleteUserById,
+  getAllUser,
+  getUserById,
+  updateUserById,
+} from "../controllers/admin.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -58,6 +63,14 @@ protectedAdminRouter.route("/verify-pending-email").post(verifyPendingEmail);
 
 protectedAdminRouter.route("/getallusers").get(getAllUser);
 protectedAdminRouter.route("/getuser/:id").get(getUserById);
+protectedAdminRouter
+  .route("/updateuser/:id")
+  .put(
+    uploadWithErrorHandling("avatar"),
+    validate(updateSchema),
+    updateUserById
+  );
 
+protectedAdminRouter.route("/deleteuser/:id").delete(deleteUserById);
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
