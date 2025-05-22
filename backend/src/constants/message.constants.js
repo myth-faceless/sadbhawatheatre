@@ -60,6 +60,7 @@ export const ERROR_MESSAGES = {
 
   INVALID_USER_ID: "Invalid User ID !",
   PHOTO_REQUIRED: "Photo is required !",
+  MEMBER_ALREADY_EXISTS: "Team member already exists",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -75,6 +76,7 @@ export const SUCCESS_MESSAGES = {
     "If that email is registered, a reset link has been sent.",
   RESET_PASSWORD_EMAIL_SENT: "Password reset email send successfully",
 
+  TEAM_MEMBER_ADDED: "Team member added successfully",
   ALL_USER_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
   ALL_TEAM_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
 };

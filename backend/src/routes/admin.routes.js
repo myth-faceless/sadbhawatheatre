@@ -26,7 +26,10 @@ import {
   getUserById,
   updateUserById,
 } from "../controllers/admin.controller.js";
-import { getAllTeamMembers } from "../controllers/team.controller.js";
+import {
+  addTeamMember,
+  getAllTeamMembers,
+} from "../controllers/team.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -77,6 +80,9 @@ protectedAdminRouter.route("/deleteuser/:id").delete(deleteUserById);
 //-----------------------------team member manipuulation----------------------------
 
 protectedAdminRouter.route("/getallmember").get(getAllTeamMembers);
+protectedAdminRouter
+  .route("/addmember")
+  .post(uploadWithErrorHandling("photo"), addTeamMember);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

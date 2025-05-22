@@ -25,6 +25,15 @@ const addTeamMember = asyncHandler(async (req, res) => {
     );
   }
 
+  //check for duplicate entry
+  const existingMember = await Team.findOne({ name, role });
+  if (existingMember) {
+    throw new ApiError(
+      STATUS_CODES.DUPLICATE_ENTRY,
+      ERROR_MESSAGES.MEMBER_ALREADY_EXISTS
+    );
+  }
+
   let avatarUrl = USER_ICON;
   let avatarPublicId = null;
 
@@ -59,7 +68,7 @@ const addTeamMember = asyncHandler(async (req, res) => {
       new ApiResponse(
         STATUS_CODES.CREATED,
         newTeamMember,
-        SUCCESS_MESSAGES.RESOURCE_CREATED || "Team member added successfully."
+        SUCCESS_MESSAGES.TEAM_MEMBER_ADDED
       )
     );
 });
@@ -77,7 +86,6 @@ const getAllTeamMembers = asyncHandler(async (req, res) => {
     );
 });
 
-// Get team member by ID
 const getTeamMemberById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
@@ -98,9 +106,6 @@ const getTeamMemberById = asyncHandler(async (req, res, next) => {
     .json(new ApiResponse(STATUS_CODES.SUCCESS, member, "Team member fetched"));
 });
 
-// Add a new team member
-
-// Update team member by ID
 const updateTeamMemberById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
   const { name, role, bio, socialLinks } = req.body;
@@ -140,7 +145,6 @@ const updateTeamMemberById = asyncHandler(async (req, res, next) => {
     .json(new ApiResponse(STATUS_CODES.SUCCESS, member, "Team member updated"));
 });
 
-// Delete team member by ID
 const deleteTeamMemberById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
