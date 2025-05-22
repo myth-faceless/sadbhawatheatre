@@ -58,7 +58,8 @@ export const ERROR_MESSAGES = {
   NO_PENDING_EMAIL_FOUND: "No Pending email verification found!",
   EXPIRED_OTP: "OTP expired. Please request a new verification code",
 
-  INVALID_USER_ID: "Invalid User ID~",
+  INVALID_USER_ID: "Invalid User ID !",
+  PHOTO_REQUIRED: "Photo is required !",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -75,4 +76,5 @@ export const SUCCESS_MESSAGES = {
   RESET_PASSWORD_EMAIL_SENT: "Password reset email send successfully",
 
   ALL_USER_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
+  ALL_TEAM_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
 };
