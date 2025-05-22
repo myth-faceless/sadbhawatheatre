@@ -28,6 +28,7 @@ import {
 } from "../controllers/admin.controller.js";
 import {
   addTeamMember,
+  deleteTeamMemberById,
   getAllTeamMembers,
   getTeamMemberById,
   updateTeamMemberById,
@@ -90,6 +91,8 @@ protectedAdminRouter.route("/getmember/:id").get(getTeamMemberById);
 protectedAdminRouter
   .route("/updatemember/:id")
   .put(uploadWithErrorHandling("photo"), updateTeamMemberById);
+
+protectedAdminRouter.route("/deletemember/:id").delete(deleteTeamMemberById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

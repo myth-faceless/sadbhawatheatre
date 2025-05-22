@@ -17,7 +17,6 @@ import {
 const addTeamMember = asyncHandler(async (req, res) => {
   const { name, role, bio, socialLinks } = req.body;
 
-  // Validate required fields
   if (!name || !role) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -25,7 +24,6 @@ const addTeamMember = asyncHandler(async (req, res) => {
     );
   }
 
-  //check for duplicate entry
   const existingMember = await Team.findOne({ name, role });
   if (existingMember) {
     throw new ApiError(
@@ -38,6 +36,8 @@ const addTeamMember = asyncHandler(async (req, res) => {
   let avatarPublicId = null;
 
   const avatarLocalPath = req.file;
+  console.log("File received:", avatarLocalPath);
+
   if (avatarLocalPath) {
     try {
       const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
@@ -51,6 +51,7 @@ const addTeamMember = asyncHandler(async (req, res) => {
       );
     }
   }
+
   const newTeamMember = await Team.create({
     name,
     role,
@@ -127,7 +128,7 @@ const updateTeamMemberById = asyncHandler(async (req, res, next) => {
 
   if (avatarLocalPath) {
     if (member.cloudinaryPublicId) {
-      await deleteFileFromCloudinary(user.cloudinaryPublicId);
+      await deleteFileFromCloudinary(member.cloudinaryPublicId);
     }
     try {
       const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
@@ -181,9 +182,9 @@ const deleteTeamMemberById = asyncHandler(async (req, res, next) => {
 });
 
 export {
+  addTeamMember,
   getAllTeamMembers,
   getTeamMemberById,
-  addTeamMember,
   updateTeamMemberById,
   deleteTeamMemberById,
 };
