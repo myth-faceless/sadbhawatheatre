@@ -29,7 +29,7 @@ import { getAllTeamMembers } from "../controllers/team.controller.js";
 
 const router = Router();
 
-//------------------------global routes-------------------------------
+//------------------------global routes user -------------------------------
 
 router
   .route("/register")
@@ -40,6 +40,8 @@ router.route("/forgot-password").post(forgotPassword);
 router
   .route("/reset-password/:token")
   .post(validate(resetPasswordSchema), resetPassword);
+
+//--------------------- global routes team -----------------------------------
 
 router.route("/getallmember").get(getAllTeamMembers);
 
