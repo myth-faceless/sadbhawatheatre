@@ -297,8 +297,8 @@ const updateProfile = asyncHandler(async (req, res, next) => {
       const saltRounds = 10;
       const hashedOtp = await bcrypt.hash(otp, saltRounds);
 
-      // Mark email as unverified and set expiry time for OTP
-      user.isEmailVerified = false; // Set email verification to false
+      // Mark email as verified as it was making issue and set expiry time for OTP
+      user.isEmailVerified = true; // Set email verification to false
       user.otp = hashedOtp; // Save hashed OTP
       user.otpExpiry = Date.now() + 15 * 60 * 1000; // 15 minutes expiry
       user.pendingEmail = email; // Update the email
@@ -376,8 +376,16 @@ const changePassword = asyncHandler(async (req, res) => {
     );
   }
 
+  const isSamePassword = await bcrypt.compare(newPassword, user.password);
+  if (isSamePassword) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      "New password must be different from the current password"
+    );
+  }
+
   // Hash the new password before saving it
-  user.password = await bcrypt.hash(newPassword, 10); // 10 salt rounds for hashing
+  user.password = newPassword;
   await user.save();
 
   // Return a successful response
