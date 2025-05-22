@@ -29,6 +29,7 @@ import {
 import {
   addTeamMember,
   getAllTeamMembers,
+  getTeamMemberById,
 } from "../controllers/team.controller.js";
 
 const router = Router();
@@ -83,6 +84,8 @@ protectedAdminRouter.route("/getallmember").get(getAllTeamMembers);
 protectedAdminRouter
   .route("/addmember")
   .post(uploadWithErrorHandling("photo"), addTeamMember);
+
+protectedAdminRouter.route("/getmember/:id").get(getTeamMemberById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

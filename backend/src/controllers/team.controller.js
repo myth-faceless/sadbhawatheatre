@@ -98,7 +98,9 @@ const getTeamMemberById = asyncHandler(async (req, res, next) => {
   const member = await Team.findById(id);
 
   if (!member) {
-    return next(new ApiError(STATUS_CODES.NOT_FOUND, "Team member not found"));
+    return next(
+      new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.MEMBER_NOT_FOUND)
+    );
   }
 
   res

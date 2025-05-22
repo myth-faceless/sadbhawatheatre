@@ -61,6 +61,7 @@ export const ERROR_MESSAGES = {
   INVALID_USER_ID: "Invalid User ID !",
   PHOTO_REQUIRED: "Photo is required !",
   MEMBER_ALREADY_EXISTS: "Team member already exists",
+  MEMBER_NOT_FOUND: "Team member not found",
 };
 
 export const SUCCESS_MESSAGES = {
