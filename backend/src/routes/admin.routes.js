@@ -30,6 +30,7 @@ import {
   addTeamMember,
   getAllTeamMembers,
   getTeamMemberById,
+  updateTeamMemberById,
 } from "../controllers/team.controller.js";
 
 const router = Router();
@@ -86,6 +87,9 @@ protectedAdminRouter
   .post(uploadWithErrorHandling("photo"), addTeamMember);
 
 protectedAdminRouter.route("/getmember/:id").get(getTeamMemberById);
+protectedAdminRouter
+  .route("/updatemember/:id")
+  .put(uploadWithErrorHandling("photo"), updateTeamMemberById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
