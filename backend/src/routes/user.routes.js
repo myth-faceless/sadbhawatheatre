@@ -14,7 +14,7 @@ import {
   changePassword,
   updateProfile,
   verifyPendingEmail,
-} from "../controllers/auth.controller.js";
+} from "../controllers/global.controller.js";
 
 const router = Router();
 
