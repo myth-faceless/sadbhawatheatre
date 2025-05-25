@@ -11,12 +11,15 @@ const publicationSchema = new mongoose.Schema(
       required: true,
     },
     photo: {
-      type: String,
-      required: true,
-    },
-    public_id: {
-      type: String,
-      required: true,
+      url: {
+        type: String,
+        required: true,
+      },
+      public_id: {
+        type: String,
+        required: false,
+        default: null,
+      },
     },
     author: {
       type: String,
