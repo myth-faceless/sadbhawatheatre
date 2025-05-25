@@ -26,8 +26,12 @@ const publicationSchema = new mongoose.Schema(
       type: Date,
       required: true,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
   },
   { timestamps: true }
 );
 
-export const Pulication = mongoose.model("Publication", publicationSchema);
+export const Publication = mongoose.model("Publication", publicationSchema);
