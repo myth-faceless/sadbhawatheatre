@@ -2,12 +2,12 @@ import { Router } from "express";
 const router = Router();
 
 //router import
-import { authRoutes } from "./auth.routes.js";
 import { userRoutes } from "./user.routes.js";
 import { adminRoutes } from "./admin.routes.js";
+import { globalRoutes } from "./global.routes.js";
 
-//----------------global route ----------------
-router.use("/", authRoutes);
+//----------------global routes----------------
+router.use("/", globalRoutes);
 
 //--------------user route----------------
 

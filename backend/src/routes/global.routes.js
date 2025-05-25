@@ -24,24 +24,24 @@ import {
   forgotPassword,
   resetPassword,
   verifyPendingEmail,
-} from "../controllers/auth.controller.js";
+} from "../controllers/global.controller.js";
 import { getAllTeamMembers } from "../controllers/team.controller.js";
 
 const router = Router();
 
-//------------------------global routes user -------------------------------
+//------------------------global auth routes-----------------------------------------
 
 router
   .route("/register")
   .post(uploadWithErrorHandling("avatar"), validate(registerSchema), register);
 router.route("/verify-email").post(verifyEmail);
-router.route("/login").post(validate(loginSchema), login);
+router.route("/login").post(validate(loginSchema), checkEmailVerified, login);
 router.route("/forgot-password").post(forgotPassword);
 router
   .route("/reset-password/:token")
   .post(validate(resetPasswordSchema), resetPassword);
 
-//--------------------- global routes team -----------------------------------
+//-------------------------global routes--------------------------------------------
 
 router.route("/getallmember").get(getAllTeamMembers);
 
@@ -50,4 +50,4 @@ router.route("/getallmember").get(getAllTeamMembers);
 router.route("/logout").post(verifyJWT, logout);
 router.route("/verify-pending-email").post(verifyJWT, verifyPendingEmail);
 
-export { router as authRoutes };
+export { router as globalRoutes };

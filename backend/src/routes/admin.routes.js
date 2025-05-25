@@ -18,7 +18,7 @@ import {
   updateProfile,
   verifyPendingEmail,
   changePassword,
-} from "../controllers/auth.controller.js";
+} from "../controllers/global.controller.js";
 
 import {
   deleteUserById,

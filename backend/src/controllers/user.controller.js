@@ -14,4 +14,4 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
 
-export { register };
+export {};
