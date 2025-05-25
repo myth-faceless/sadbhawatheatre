@@ -36,7 +36,7 @@ const addTeamMember = asyncHandler(async (req, res) => {
   let avatarPublicId = null;
 
   const avatarLocalPath = req.file;
-  console.log("File received:", avatarLocalPath);
+  // console.log("File received:", avatarLocalPath);
 
   if (avatarLocalPath) {
     try {
@@ -127,8 +127,8 @@ const updateTeamMemberById = asyncHandler(async (req, res, next) => {
   const avatarLocalPath = req.file;
 
   if (avatarLocalPath) {
-    if (member.cloudinaryPublicId) {
-      await deleteFileFromCloudinary(member.cloudinaryPublicId);
+    if (member.photo.public_id) {
+      await deleteFileFromCloudinary(member.photo.public_id);
     }
     try {
       const [uploadedAvatar] = await uploadFilesToCloudinary(avatarLocalPath);
