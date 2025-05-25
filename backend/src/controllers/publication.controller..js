@@ -79,4 +79,30 @@ const getAllPublications = asyncHandler(async (req, res) => {
     );
 });
 
-export { addPublication, getAllPublications };
+const getPublicationById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_USER_ID)
+    );
+  }
+
+  const publication = await Publication.findById(id);
+
+  if (!publication) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+  }
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        publication,
+        SUCCESS_MESSAGES.FETCHED_SUCCESSFULLY
+      )
+    );
+});
+
+export { addPublication, getAllPublications, getPublicationById };
