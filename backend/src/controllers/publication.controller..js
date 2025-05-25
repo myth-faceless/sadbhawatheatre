@@ -1,16 +1,16 @@
-import { DEFAULT_ICON } from "../constants/app.constants";
+import { DEFAULT_ICON } from "../constants/app.constants.js";
 import {
   ERROR_MESSAGES,
   STATUS_CODES,
   SUCCESS_MESSAGES,
-} from "../constants/message.constants";
-import { Publication } from "../models/publication.model";
-import { ApiError } from "../utils/ApiErrors";
-import { ApiResponse } from "../utils/ApiResponse";
-import { asyncHandler } from "../utils/asyncHandler";
-import { uploadFilesToCloudinary } from "../utils/cloudinary";
+} from "../constants/message.constants.js";
+import { Publication } from "../models/publication.model.js";
+import { ApiError } from "../utils/ApiErrors.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
 
-const createPublication = asyncHandler(async (req, res) => {
+const addPublication = asyncHandler(async (req, res) => {
   const { title, description, author, publicationDate } = req.body;
 
   if (!title || !description || !author || !publicationDate) {
@@ -50,8 +50,10 @@ const createPublication = asyncHandler(async (req, res) => {
     description,
     author,
     publicationDate,
-    photo: photoUrl,
-    public_id: photoPublicId,
+    photo: {
+      url: photoUrl,
+      public_id: photoPublicId,
+    },
   });
   return res
     .status(STATUS_CODES.CREATED)
@@ -64,4 +66,4 @@ const createPublication = asyncHandler(async (req, res) => {
     );
 });
 
-export { createPublication };
+export { addPublication };
