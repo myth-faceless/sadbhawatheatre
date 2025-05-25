@@ -35,8 +35,10 @@ import {
 } from "../controllers/team.controller.js";
 import {
   addPublication,
+  deletePublicationById,
   getAllPublications,
   getPublicationById,
+  updatePublicationById,
 } from "../controllers/publication.controller..js";
 
 const router = Router();
@@ -107,6 +109,14 @@ protectedAdminRouter
 protectedAdminRouter.route("/getallpublication").get(getAllPublications);
 
 protectedAdminRouter.route("/getpublication/:id").get(getPublicationById);
+
+protectedAdminRouter
+  .route("/updatepublication/:id")
+  .put(uploadWithErrorHandling("photo"), updatePublicationById);
+
+protectedAdminRouter
+  .route("/deletepublication/:id")
+  .delete(deletePublicationById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };

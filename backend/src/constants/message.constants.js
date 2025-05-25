@@ -66,6 +66,7 @@ export const ERROR_MESSAGES = {
   ALL_FIELDS_REQUIRED: "All fields required !",
   PUBLICATION_ALREADY_EXISTS: "Publication already exists !",
   NOT_FOUND: "Not found !",
+  INVALID_ID: "Invalid ID",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -87,4 +88,6 @@ export const SUCCESS_MESSAGES = {
 
   PUBLICATION_CREATED: "Publication created successfully",
   FETCHED_SUCCESSFULLY: "Fetched successfully !",
+  DELETED: "Deleted Successfully",
+  UPDATED_SUCCESSFULLY: "Updated Successfully !",
 };

@@ -105,4 +105,91 @@ const getPublicationById = asyncHandler(async (req, res) => {
     );
 });
 
-export { addPublication, getAllPublications, getPublicationById };
+const updatePublicationById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { title, description, author, publicationDate } = req.body;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
+    );
+  }
+
+  const publication = await Publication.findById(id);
+
+  if (!publication) {
+    return next(new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND));
+  }
+
+  const photoFile = req.file;
+
+  if (photoFile) {
+    if (publication.photo.public_id) {
+      await deleteFileFromCloudinary(publication.photo.public_id);
+    }
+    try {
+      const [uploadedPhoto] = await uploadFilesToCloudinary(photoFile);
+      publication.photo.url = uploadedPhoto.url;
+      publication.photo.public_id = uploadedPhoto.public_id;
+    } catch (uploadError) {
+      throw new ApiError(
+        STATUS_CODES.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.CLOUDINARY_AVATAR_UPLOAD_FAILED,
+        [uploadError.message]
+      );
+    }
+  }
+
+  publication.title = title || publication.title;
+  publication.description = description || publication.description;
+  publication.author = author || publication.author;
+  publication.publicationDate = publicationDate || publication.publicationDate;
+
+  await publication.save();
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        publication,
+        SUCCESS_MESSAGES.UPDATED_SUCCESSFULLY
+      )
+    );
+});
+
+const deletePublicationById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_USER_ID)
+    );
+  }
+
+  const publication = await Publication.findById(id);
+
+  if (!publication) {
+    return next(new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND));
+  }
+
+  if (publication.photo?.public_id) {
+    await deleteFileFromCloudinary(publication.photo.public_id);
+  }
+
+  await publication.deleteOne();
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(STATUS_CODES.SUCCESS, null, SUCCESS_MESSAGES.DELETED)
+    );
+});
+
+export {
+  addPublication,
+  getAllPublications,
+  getPublicationById,
+  updatePublicationById,
+  deletePublicationById,
+};
