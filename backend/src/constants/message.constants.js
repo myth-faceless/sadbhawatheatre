@@ -62,6 +62,9 @@ export const ERROR_MESSAGES = {
   PHOTO_REQUIRED: "Photo is required !",
   MEMBER_ALREADY_EXISTS: "Team member already exists",
   MEMBER_NOT_FOUND: "Team member not found",
+
+  ALL_FIELDS_REQUIRED: "All fields required !",
+  PUBLICATION_ALREADY_EXISTS: "Publication already exists !",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -80,4 +83,6 @@ export const SUCCESS_MESSAGES = {
   TEAM_MEMBER_ADDED: "Team member added successfully",
   ALL_USER_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
   ALL_TEAM_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
+
+  PUBLICATION_CREATED: "Publication created successfully",
 };
