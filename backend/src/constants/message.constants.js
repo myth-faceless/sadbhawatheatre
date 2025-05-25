@@ -65,6 +65,7 @@ export const ERROR_MESSAGES = {
 
   ALL_FIELDS_REQUIRED: "All fields required !",
   PUBLICATION_ALREADY_EXISTS: "Publication already exists !",
+  NOT_FOUND: "Not found !",
 };
 
 export const SUCCESS_MESSAGES = {
