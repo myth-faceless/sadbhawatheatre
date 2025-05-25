@@ -33,6 +33,7 @@ import {
   getTeamMemberById,
   updateTeamMemberById,
 } from "../controllers/team.controller.js";
+import { addPublication } from "../controllers/publication.controller..js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -82,10 +83,10 @@ protectedAdminRouter.route("/deleteuser/:id").delete(deleteUserById);
 
 //-----------------------------team member manipuulation----------------------------
 
-protectedAdminRouter.route("/getallmember").get(getAllTeamMembers);
 protectedAdminRouter
   .route("/addmember")
   .post(uploadWithErrorHandling("photo"), addTeamMember);
+protectedAdminRouter.route("/getallmember").get(getAllTeamMembers);
 
 protectedAdminRouter.route("/getmember/:id").get(getTeamMemberById);
 protectedAdminRouter
@@ -93,6 +94,12 @@ protectedAdminRouter
   .put(uploadWithErrorHandling("photo"), updateTeamMemberById);
 
 protectedAdminRouter.route("/deletemember/:id").delete(deleteTeamMemberById);
+
+//------------------------ publications manipulation --------------------------------
+
+protectedAdminRouter
+  .route("/addpublication")
+  .post(uploadWithErrorHandling("photo"), addPublication);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
