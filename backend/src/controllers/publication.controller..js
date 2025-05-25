@@ -66,4 +66,17 @@ const addPublication = asyncHandler(async (req, res) => {
     );
 });
 
-export { addPublication };
+const getAllPublications = asyncHandler(async (req, res) => {
+  const allPublications = await Publication.find();
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        allPublications,
+        SUCCESS_MESSAGES.FETCHED_SUCCESSFULLY
+      )
+    );
+});
+
+export { addPublication, getAllPublications };

@@ -26,6 +26,7 @@ import {
   verifyPendingEmail,
 } from "../controllers/global.controller.js";
 import { getAllTeamMembers } from "../controllers/team.controller.js";
+import { getAllPublications } from "../controllers/publication.controller..js";
 
 const router = Router();
 
@@ -44,6 +45,7 @@ router
 //-------------------------global routes--------------------------------------------
 
 router.route("/getallmember").get(getAllTeamMembers);
+router.route("/getallpublication").get(getAllPublications);
 
 //-------------------------protected global routes-------------------------------
 

@@ -85,4 +85,5 @@ export const SUCCESS_MESSAGES = {
   ALL_TEAM_FETCHED_SUCCESSFULLY: "All user fetched successfully !",
 
   PUBLICATION_CREATED: "Publication created successfully",
+  FETCHED_SUCCESSFULLY: "Fetched successfully !",
 };
