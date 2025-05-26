@@ -1,4 +1,7 @@
-import { STATUS_CODES, ERROR_MESSAGES } from "../constants/message.constants.js";
+import {
+  STATUS_CODES,
+  ERROR_MESSAGES,
+} from "../constants/message.constants.js";
 import { ApiError } from "../utils/ApiErrors.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { getTokenFromRequest } from "../utils/auth.js";
@@ -34,10 +37,7 @@ const verifyJWT = asyncHandler(async (req, res, next) => {
         ERROR_MESSAGES.SESSION_EXPIRED
       );
     }
-    throw new ApiError(
-      STATUS_CODES.UNAUTHORIZED,
-      ERROR_MESSAGES.INVALID_TOKEN
-    );
+    throw new ApiError(STATUS_CODES.UNAUTHORIZED, ERROR_MESSAGES.INVALID_TOKEN);
   }
 });
 
@@ -53,15 +53,4 @@ const verifyRole = (requiredRole) =>
     next();
   });
 
-// Check if email is verified
-const checkEmailVerified = asyncHandler((req, res, next) => {
-  if (!req.user?.isEmailVerified) {
-    throw new ApiError(
-      STATUS_CODES.FORBIDDEN,
-      ERROR_MESSAGES.EMAIL_NOT_VERIFIED
-    );
-  }
-  next();
-});
-
-export { verifyJWT, verifyRole, checkEmailVerified };
+export { verifyJWT, verifyRole };
