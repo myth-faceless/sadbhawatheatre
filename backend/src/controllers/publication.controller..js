@@ -8,7 +8,10 @@ import { Publication } from "../models/publication.model.js";
 import { ApiError } from "../utils/ApiErrors.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadFilesToCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadFilesToCloudinary,
+  deleteFileFromCloudinary,
+} from "../utils/cloudinary.js";
 
 const addPublication = asyncHandler(async (req, res) => {
   const { title, description, author, publicationDate } = req.body;
@@ -79,7 +82,7 @@ const getAllPublications = asyncHandler(async (req, res) => {
     );
 });
 
-const getPublicationById = asyncHandler(async (req, res) => {
+const getPublicationById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -121,14 +124,14 @@ const updatePublicationById = asyncHandler(async (req, res, next) => {
     return next(new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND));
   }
 
-  const photoFile = req.file;
+  const photoPath = req.file;
 
-  if (photoFile) {
-    if (publication.photo.public_id) {
+  if (photoPath) {
+    if (publication.photo?.public_id) {
       await deleteFileFromCloudinary(publication.photo.public_id);
     }
     try {
-      const [uploadedPhoto] = await uploadFilesToCloudinary(photoFile);
+      const [uploadedPhoto] = await uploadFilesToCloudinary(photoPath);
       publication.photo.url = uploadedPhoto.url;
       publication.photo.public_id = uploadedPhoto.public_id;
     } catch (uploadError) {
