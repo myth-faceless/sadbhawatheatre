@@ -67,6 +67,8 @@ export const ERROR_MESSAGES = {
   PUBLICATION_ALREADY_EXISTS: "Publication already exists !",
   NOT_FOUND: "Not found !",
   INVALID_ID: "Invalid ID",
+
+  EVENT_ALREADY_EXISTS: "Event already exists!",
 };
 
 export const SUCCESS_MESSAGES = {
@@ -90,4 +92,6 @@ export const SUCCESS_MESSAGES = {
   FETCHED_SUCCESSFULLY: "Fetched successfully !",
   DELETED: "Deleted Successfully",
   UPDATED_SUCCESSFULLY: "Updated Successfully !",
+
+  EVENT_CREATED: "Event created successfully !!",
 };
