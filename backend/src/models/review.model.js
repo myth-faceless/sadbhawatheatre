@@ -9,7 +9,7 @@ const reviewSchema = new mongoose.Schema(
     },
     drama: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Drama",
+      ref: "Event",
       required: true,
     },
     booking: {

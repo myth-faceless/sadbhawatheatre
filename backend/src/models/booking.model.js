@@ -2,9 +2,9 @@ import mongoose from "mongoose";
 
 const bookingSchema = new mongoose.Schema(
   {
-    drama: {
+    event: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Drama",
+      ref: "Event",
       required: true,
     },
     showtime: {
