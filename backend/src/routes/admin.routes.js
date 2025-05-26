@@ -40,6 +40,7 @@ import {
   getPublicationById,
   updatePublicationById,
 } from "../controllers/publication.controller..js";
+import { addEvent } from "../controllers/event.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -117,6 +118,12 @@ protectedAdminRouter
 protectedAdminRouter
   .route("/deletepublication/:id")
   .delete(deletePublicationById);
+
+//----------------------------event manipulation--------------------------------------
+
+protectedAdminRouter
+  .route("/addevent")
+  .post(uploadWithErrorHandling("photos", true), addEvent);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
