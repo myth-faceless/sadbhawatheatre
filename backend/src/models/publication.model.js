@@ -17,7 +17,6 @@ const publicationSchema = new mongoose.Schema(
       },
       public_id: {
         type: String,
-        required: false,
         default: null,
       },
     },
