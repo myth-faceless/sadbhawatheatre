@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const showtimeSchema = new mongoose.Schema({
   date: {
-    type: String,
+    type: Date,
     required: true,
   },
   time: {
@@ -12,6 +12,7 @@ const showtimeSchema = new mongoose.Schema({
   seatAvailable: {
     type: Number,
     required: true,
+    min: 0,
   },
 });
 
