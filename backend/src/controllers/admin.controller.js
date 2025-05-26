@@ -30,7 +30,7 @@ const getAllUser = asyncHandler(async (req, res) => {
     );
 });
 
-const getUserById = asyncHandler(async (req, res) => {
+const getUserById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
   //validate mongoDB ObjectId:
