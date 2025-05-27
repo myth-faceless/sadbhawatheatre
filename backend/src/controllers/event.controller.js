@@ -151,4 +151,30 @@ const getAllEvents = asyncHandler(async (req, res) => {
     );
 });
 
-export { addEvent, getAllEvents };
+const getEventById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
+    );
+  }
+
+  const event = await Event.findById(id);
+
+  if (!event) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+  }
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        event,
+        SUCCESS_MESSAGES.FETCHED_SUCCESSFULLY
+      )
+    );
+});
+
+export { addEvent, getAllEvents, getEventById };
