@@ -12,6 +12,7 @@ import {
   uploadFilesToCloudinary,
   deleteFileFromCloudinary,
 } from "../utils/cloudinary.js";
+import { updateProfile } from "./global.controller.js";
 
 const addEvent = asyncHandler(async (req, res) => {
   const {
@@ -177,4 +178,129 @@ const getEventById = asyncHandler(async (req, res, next) => {
     );
 });
 
-export { addEvent, getAllEvents, getEventById };
+const updateEventById = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+
+  const {
+    type,
+    title,
+    description,
+    director,
+    cast,
+    startDate,
+    endDate,
+    venue,
+    showTimes = [],
+    adultTicketPrice,
+    studentTicketPrice,
+  } = req.body;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
+    );
+  }
+  const event = await Event.findById(id);
+  if (!event) {
+    throw new ApiError(
+      STATUS_CODES.NOT_FOUND,
+      ERROR_MESSAGES.NOT_FOUND || "Event not found"
+    );
+  }
+
+  const duplicateEvent = await Event.findOne({
+    title,
+    director,
+  });
+  if (duplicateEvent) {
+    throw new ApiError(
+      STATUS_CODES.DUPLICATE_ENTRY,
+      ERROR_MESSAGES.EVENT_ALREADY_EXISTS
+    );
+  }
+
+  let castParsed = [];
+  let showTimesParsed = [];
+
+  try {
+    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
+  } catch {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
+  }
+
+  try {
+    showTimesParsed =
+      typeof showTimes === "string" ? JSON.parse(showTimes) : showTimes;
+  } catch {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'showTimes'");
+  }
+
+  // Handle photo update
+  const uploadedFiles = req.files;
+
+  if (uploadedFiles && uploadedFiles.length > 0) {
+    // Delete existing photos from Cloudinary
+
+    if (event.photos && event.photos.length > 0) {
+      for (const photo of event.photos) {
+        if (photo.public_id) {
+          try {
+            await deleteFileFromCloudinary(photo.public_id);
+          } catch (error) {
+            console.error("Cloudinary deletion failed:", error.message);
+          }
+        }
+      }
+    }
+
+    try {
+      const uploadedImages = await uploadFilesToCloudinary(uploadedFiles);
+
+      if (uploadedImages.length > 0) {
+        event.photos = uploadedImages.map((img) => ({
+          url: img.url,
+          public_id: img.public_id,
+        }));
+      }
+    } catch (error) {
+      console.error("Cloudinary upload failed:", error.message);
+      throw new ApiError(
+        STATUS_CODES.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
+        [error.message]
+      );
+    }
+  }
+
+  // Update fields
+  event.type = type || event.type;
+  event.title = title || event.title;
+  event.description = description || event.description;
+  event.director = director || event.director;
+  event.cast = castParsed || event.cast;
+  event.startDate = startDate || event.startDate;
+  event.endDate = endDate || event.endDate;
+  event.venue = venue || event.venue;
+  event.showTimes = showTimesParsed || event.showTimes;
+  event.adultTicketPrice = adultTicketPrice || event.adultTicketPrice;
+  event.studentTicketPrice = studentTicketPrice || event.studentTicketPrice;
+
+  try {
+    await event.save();
+
+    return res.status(200).json({
+      status: "success",
+      data: event,
+      message: "Event updated successfully!",
+    });
+  } catch (err) {
+    console.error("Error saving event:", err);
+    return res.status(500).json({
+      status: "error",
+      message: "Internal Server Error",
+      error: err.message,
+    });
+  }
+});
+
+export { addEvent, getAllEvents, getEventById, updateEventById };
