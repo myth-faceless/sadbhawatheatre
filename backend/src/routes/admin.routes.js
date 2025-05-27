@@ -44,6 +44,7 @@ import {
   addEvent,
   getAllEvents,
   getEventById,
+  updateEventById,
 } from "../controllers/event.controller.js";
 
 const router = Router();
@@ -130,6 +131,9 @@ protectedAdminRouter
   .post(uploadWithErrorHandling("photos", true), addEvent);
 protectedAdminRouter.route("/getallevents").get(getAllEvents);
 protectedAdminRouter.route("/getevent/:id").get(getEventById);
+protectedAdminRouter
+  .route("/updateevent/:id")
+  .put(uploadWithErrorHandling("photos", true), updateEventById);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
