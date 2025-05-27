@@ -138,4 +138,17 @@ const addEvent = asyncHandler(async (req, res) => {
     );
 });
 
-export { addEvent };
+const getAllEvents = asyncHandler(async (req, res) => {
+  const allEvents = await Event.find();
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        allEvents,
+        SUCCESS_MESSAGES.FETCHED_SUCCESSFULLY
+      )
+    );
+});
+
+export { addEvent, getAllEvents };
