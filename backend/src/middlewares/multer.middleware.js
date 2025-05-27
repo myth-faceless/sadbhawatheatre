@@ -17,7 +17,12 @@ const storage = multer.diskStorage({
 
 // File filter for allowed file types
 const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ["image/jpeg", "image/png", "image/gif"];
+  const allowedMimeTypes = [
+    "image/jpeg",
+    "image/png",
+    "image/gif",
+    "image/webp",
+  ];
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true); // Accept file
   } else {
@@ -29,14 +34,20 @@ const fileFilter = (req, file, cb) => {
 };
 
 // Multer instance with file filter
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, //5MB max;
+  },
+});
 
 // Middleware to handle file upload with error handling
 export const uploadWithErrorHandling =
-  (fieldName, multiple = false) =>
+  (fieldName, multiple = false, maxCount = 5) =>
   (req, res, next) => {
     const uploadHandler = multiple
-      ? upload.array(fieldName)
+      ? upload.array(fieldName, maxCount)
       : upload.single(fieldName);
 
     uploadHandler(req, res, (err) => {
