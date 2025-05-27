@@ -124,6 +124,7 @@ const updateTeamMemberById = asyncHandler(async (req, res, next) => {
   if (!member) {
     return next(new ApiError(STATUS_CODES.NOT_FOUND, "Team member not found"));
   }
+
   const avatarLocalPath = req.file;
 
   if (avatarLocalPath) {
