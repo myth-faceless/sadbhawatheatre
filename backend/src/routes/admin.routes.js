@@ -40,7 +40,7 @@ import {
   getPublicationById,
   updatePublicationById,
 } from "../controllers/publication.controller..js";
-import { addEvent } from "../controllers/event.controller.js";
+import { addEvent, getAllEvents } from "../controllers/event.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -124,6 +124,7 @@ protectedAdminRouter
 protectedAdminRouter
   .route("/addevent")
   .post(uploadWithErrorHandling("photos", true), addEvent);
+protectedAdminRouter.route("/getallevents").get(getAllEvents);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
