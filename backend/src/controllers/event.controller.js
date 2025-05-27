@@ -303,4 +303,57 @@ const updateEventById = asyncHandler(async (req, res, next) => {
   }
 });
 
-export { addEvent, getAllEvents, getEventById, updateEventById };
+const deleteEventById = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const event = await Event.findById(id);
+  if (!event) {
+    throw new ApiError(
+      STATUS_CODES.NOT_FOUND,
+      ERROR_MESSAGES.EVENT_NOT_FOUND || "Event not found"
+    );
+  }
+
+  if (event.photos && event.photos.length > 0) {
+    try {
+      await Promise.all(
+        event.photos.map(async (photo) => {
+          if (photo.public_id) {
+            await deleteFileFromCloudinary(photo.public_id);
+          }
+        })
+      );
+    } catch (error) {
+      console.error("Cloudinary deletion failed:", error.message);
+    }
+  }
+
+  try {
+    await event.deleteOne();
+  } catch (err) {
+    console.error("Failed to delete event from DB:", err);
+    throw new ApiError(
+      STATUS_CODES.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.FAILED || "Failed to delete event",
+      [err.message]
+    );
+  }
+
+  return res
+    .status(STATUS_CODES.OK)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.OK,
+        null,
+        SUCCESS_MESSAGES.DELETED || "Event deleted successfully!"
+      )
+    );
+});
+
+export {
+  addEvent,
+  getAllEvents,
+  getEventById,
+  updateEventById,
+  deleteEventById,
+};
