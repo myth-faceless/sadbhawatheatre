@@ -23,7 +23,8 @@ const photoSchema = new mongoose.Schema({
   },
   public_id: {
     type: String,
-    required: true,
+    required: false,
+    default: null,
   },
 });
 
