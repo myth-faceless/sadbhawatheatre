@@ -46,7 +46,6 @@ const addEvent = asyncHandler(async (req, res) => {
   }
 
   const existingEvent = await Event.findOne({ title, director });
-
   if (existingEvent) {
     throw new ApiError(
       STATUS_CODES.DUPLICATE_ENTRY,
@@ -54,51 +53,87 @@ const addEvent = asyncHandler(async (req, res) => {
     );
   }
 
-  let photoUrl = DEFAULT_ICON;
-  let photoPublicId = null;
+  let photos = [
+    {
+      url: DEFAULT_ICON,
+      public_id: null,
+    },
+  ];
 
-  const uploadedFile = req.file;
-  if (uploadedFile) {
-    try {
-      const [uploadedImage] = await uploadFilesToCloudinary(uploadedFile);
-      photoUrl = uploadedImage.url;
-      photoPublicId = uploadedImage.public_id;
-    } catch (error) {
-      throw new ApiError(
-        STATUS_CODES.INTERNAL_SERVER_ERROR,
-        ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
-        [error.message]
-      );
-    }
+  let castParsed = [];
+  let showTimesParsed = [];
+
+  try {
+    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
+  } catch {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
   }
 
-  const newEvent = await Event.create({
-    type,
-    title,
-    description,
-    director,
-    cast,
-    startDate,
-    endDate,
-    venue,
-    showTimes,
-    adultTicketPrice,
-    studentTicketPrice,
-    photos: [
-      {
-        url: photoUrl,
-        public_id: photoPublicId,
-      },
-    ],
-  });
+  try {
+    showTimesParsed =
+      typeof showTimes === "string" ? JSON.parse(showTimes) : showTimes;
+  } catch {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'showTimes'");
+  }
 
+  //upload files to cloudinary
+  const uploadedFiles = req.files; // from multer
+  try {
+    if (uploadedFiles && uploadedFiles.length > 0) {
+      // console.log("Uploaded Files:", uploadedFiles);
+      const uploadedImages = await uploadFilesToCloudinary(uploadedFiles);
+
+      // console.log("Cloudinary Response:", uploadedImages);
+
+      // Replace default photos only if successful uploads exist
+      if (uploadedImages.length > 0) {
+        photos = uploadedImages.map((img) => ({
+          url: img.url,
+          public_id: img.public_id,
+        }));
+      }
+    }
+  } catch (error) {
+    console.error("Cloudinary upload failed:", error.message);
+    throw new ApiError(
+      STATUS_CODES.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
+      [error.message]
+    );
+  }
+
+  // Save event
+  let newEvent;
+  try {
+    newEvent = await Event.create({
+      type,
+      title,
+      description,
+      director,
+      cast: castParsed,
+      startDate,
+      endDate,
+      venue,
+      showTimes: showTimesParsed,
+      adultTicketPrice,
+      studentTicketPrice,
+      photos,
+    });
+  } catch (err) {
+    console.error("Error saving event:", err);
+    throw new ApiError(
+      STATUS_CODES.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.FAILED,
+      [err.message]
+    );
+  }
   return res
     .status(STATUS_CODES.CREATED)
     .json(
       new ApiResponse(
         STATUS_CODES.CREATED,
         newEvent,
-        SUCCESS_MESSAGES.CREATED || "Event created successfully !"
+        SUCCESS_MESSAGES.CREATED || "Event created successfully!"
       )
     );
 });
