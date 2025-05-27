@@ -69,6 +69,7 @@ export const ERROR_MESSAGES = {
   INVALID_ID: "Invalid ID",
 
   EVENT_ALREADY_EXISTS: "Event already exists!",
+  FAILED: "Failed to create !",
 };
 
 export const SUCCESS_MESSAGES = {
