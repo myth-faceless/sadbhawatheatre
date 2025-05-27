@@ -42,6 +42,7 @@ import {
 } from "../controllers/publication.controller..js";
 import {
   addEvent,
+  deleteEventById,
   getAllEvents,
   getEventById,
   updateEventById,
@@ -135,5 +136,6 @@ protectedAdminRouter
   .route("/updateevent/:id")
   .put(uploadWithErrorHandling("photos", true), updateEventById);
 
+protectedAdminRouter.route("/deleteevent/:id").delete(deleteEventById);
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
