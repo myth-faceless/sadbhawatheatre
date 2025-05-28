@@ -23,6 +23,7 @@ import {
 import { getAllTeamMembers } from "../controllers/team.controller.js";
 import { getAllPublications } from "../controllers/publication.controller..js";
 import { getAllEvents } from "../controllers/event.controller.js";
+import { createBooking } from "../controllers/booking.controller.js";
 
 const router = Router();
 
@@ -48,5 +49,8 @@ router.route("/getallevents").get(getAllEvents);
 
 router.route("/logout").post(verifyJWT, logout);
 router.route("/verify-pending-email").post(verifyJWT, verifyPendingEmail);
+
+//--------------------------booking---------------------------------------------
+router.route("/createbooking").post(verifyJWT, createBooking);
 
 export { router as globalRoutes };
