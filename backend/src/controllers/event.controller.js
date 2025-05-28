@@ -303,8 +303,14 @@ const updateEventById = asyncHandler(async (req, res, next) => {
   }
 });
 
-const deleteEventById = asyncHandler(async (req, res) => {
+const deleteEventById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
+
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    return next(
+      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
+    );
+  }
 
   const event = await Event.findById(id);
   if (!event) {
@@ -314,40 +320,57 @@ const deleteEventById = asyncHandler(async (req, res) => {
     );
   }
 
-  if (event.photos && event.photos.length > 0) {
-    try {
-      await Promise.all(
-        event.photos.map(async (photo) => {
-          if (photo.public_id) {
-            await deleteFileFromCloudinary(photo.public_id);
-          }
-        })
-      );
-    } catch (error) {
-      console.error("Cloudinary deletion failed:", error.message);
+  if (Array.isArray(event.photos)) {
+    for (const photo of event.photos) {
+      if (photo?.public_id) {
+        try {
+          await deleteFileFromCloudinary(photo.public_id);
+        } catch (cloudErr) {
+          console.error(
+            "Failed to delete photo from Cloudinary:",
+            cloudErr.message
+          );
+        }
+      }
+      //else {
+      //   console.log("Skipping photo without public_id:");
+      // }
     }
   }
 
   try {
     await event.deleteOne();
-  } catch (err) {
-    console.error("Failed to delete event from DB:", err);
-    throw new ApiError(
-      STATUS_CODES.INTERNAL_SERVER_ERROR,
-      ERROR_MESSAGES.FAILED || "Failed to delete event",
-      [err.message]
+  } catch (dbErr) {
+    console.error("Failed to delete event from DB:", dbErr);
+    return next(
+      new ApiError(
+        STATUS_CODES.INTERNAL_SERVER_ERROR,
+        ERROR_MESSAGES.FAILED || "Failed to delete event",
+        [dbErr.message]
+      )
     );
   }
 
-  return res
-    .status(STATUS_CODES.OK)
-    .json(
-      new ApiResponse(
-        STATUS_CODES.OK,
-        null,
-        SUCCESS_MESSAGES.DELETED || "Event deleted successfully!"
+  try {
+    return res
+      .status(STATUS_CODES.SUCCESS)
+      .json(
+        new ApiResponse(
+          STATUS_CODES.SUCCESS,
+          null,
+          SUCCESS_MESSAGES.DELETED || "Event deleted successfully!"
+        )
+      );
+  } catch (resErr) {
+    console.error("Failed to send success response:", resErr);
+    return next(
+      new ApiError(
+        STATUS_CODES.INTERNAL_SERVER_ERROR,
+        "Event deleted but response failed",
+        [resErr.message]
       )
     );
+  }
 });
 
 export {
