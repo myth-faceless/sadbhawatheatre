@@ -70,6 +70,13 @@ export const ERROR_MESSAGES = {
 
   EVENT_ALREADY_EXISTS: "Event already exists!",
   FAILED: "Failed to create !",
+
+  REQUIRE_ONLINE_PAYMENT: "User require online payment !",
+  PAYMENT_REFERENCE_REQUIRED: "Payment reference is required !",
+  PAYMENT_NOT_COMPLETE: "User should pay first to book tickets",
+
+  MISSING_NAME_AND_CONTACT:
+    "Customer name and contact required for admin booking !",
 };
 
 export const SUCCESS_MESSAGES = {
