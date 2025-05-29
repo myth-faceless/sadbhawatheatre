@@ -115,8 +115,6 @@ const createBooking = asyncHandler(async (req, res) => {
 
   const totalTicketsRequested = (tickets.adult || 0) + (tickets.student || 0);
 
-  console.log("Requestid tickets", totalTicketsRequested);
-
   if (showtimeObj.seatAvailable < totalTicketsRequested) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -127,23 +125,6 @@ const createBooking = asyncHandler(async (req, res) => {
   showtimeObj.seatAvailable -= totalTicketsRequested;
 
   await existingEvent.save();
-
-  console.log({
-    event,
-    showtime,
-    user: isAdmin ? null : req.user?._id,
-    bookedByAdmin: isAdmin || false,
-    customerName: isAdmin ? customerName : req.user?.fullName || "Anonymous",
-    customerPhone: isAdmin
-      ? customerPhone
-      : req.user?.phoneNumber || "0000000000",
-    tickets,
-    totalAmount,
-    paymentStatus,
-    paymentMethod,
-    paymentPlatform: paymentMethod === "online" ? paymentPlatform : null,
-    paymentReference: paymentMethod === "online" ? paymentReference : null,
-  });
 
   const booking = await Booking.create({
     event,
