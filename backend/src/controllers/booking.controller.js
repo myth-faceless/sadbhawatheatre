@@ -14,8 +14,6 @@ const createBooking = asyncHandler(async (req, res) => {
   const {
     event,
     showtime,
-    user,
-    bookedByAdmin,
     customerName,
     customerPhone,
     tickets,
@@ -43,7 +41,9 @@ const createBooking = asyncHandler(async (req, res) => {
     throw new ApiError(STATUS_CODES.NOT_FOUND, "Event not found");
   }
 
-  if (bookedByAdmin && (!customerName || !customerPhone)) {
+  const isAdmin = req.user?.role === "admin";
+
+  if (isAdmin && (!customerName || !customerPhone)) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
       "Customer name and phone are required for admin bookings"
@@ -53,10 +53,10 @@ const createBooking = asyncHandler(async (req, res) => {
   const booking = await Booking.create({
     event,
     showtime,
-    user: bookedByAdmin ? undefined : req.user?._id,
-    bookedByAdmin: bookedByAdmin || false,
-    customerName,
-    customerPhone,
+    user: isAdmin ? null : req.user?._id,
+    bookedByAdmin: isAdmin || false,
+    customerName: isAdmin ? customerName : req.user?.fullName,
+    customerPhone: isAdmin ? customerPhone : req.user?.phoneNumber,
     tickets,
     totalAmount,
     paymentStatus,
