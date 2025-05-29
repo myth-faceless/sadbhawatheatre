@@ -26,7 +26,7 @@ const bookingSchema = new mongoose.Schema(
       type: String,
     },
     tickets: {
-      adults: {
+      adult: {
         type: Number,
         required: true,
         default: 0,
@@ -48,7 +48,18 @@ const bookingSchema = new mongoose.Schema(
     },
     paymentMethod: {
       type: String,
-      enum: ["online", "cash"],
+      enum: ["online", "cash", "QR"],
+      required: true,
+    },
+    paymentPlatform: {
+      type: String,
+      enum: ["fonepay", "khalti", "esewa", null],
+      default: null,
+    },
+    paymentReference: {
+      type: String,
+      default: null,
+      unique: true,
     },
     attendance: {
       type: Boolean,
