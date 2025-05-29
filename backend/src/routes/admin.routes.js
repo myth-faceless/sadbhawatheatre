@@ -47,6 +47,7 @@ import {
   getEventById,
   updateEventById,
 } from "../controllers/event.controller.js";
+import { createBooking } from "../controllers/booking.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -137,5 +138,9 @@ protectedAdminRouter
   .put(uploadWithErrorHandling("photos", true), updateEventById);
 
 protectedAdminRouter.route("/deleteevent/:id").delete(deleteEventById);
+
+//---------------------------------booking manipulation------------------------------------
+protectedAdminRouter.route("/createbooking").post(createBooking);
+
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
