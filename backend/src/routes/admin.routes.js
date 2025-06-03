@@ -47,7 +47,17 @@ import {
   getEventById,
   updateEventById,
 } from "../controllers/event.controller.js";
-import { createBooking } from "../controllers/booking.controller.js";
+import {
+  createBooking,
+  getAllBookings,
+} from "../controllers/booking.controller.js";
+import {
+  createShowtime,
+  deleteShowtime,
+  getAllShowtimes,
+  getShowtimeById,
+  updateShowtimeById,
+} from "../controllers/showtime.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -139,8 +149,18 @@ protectedAdminRouter
 
 protectedAdminRouter.route("/deleteevent/:id").delete(deleteEventById);
 
+//----------------------------------showtime manipulation---------------------------------
+
+protectedAdminRouter.route("/createshowtime").post(createShowtime);
+protectedAdminRouter.route("/getallshowtimes").get(getAllShowtimes);
+protectedAdminRouter.route("/getshowtime/:id").get(getShowtimeById);
+protectedAdminRouter.route("/updateshowtime/:id").put(updateShowtimeById);
+protectedAdminRouter.route("/deleteshowtime/:id").delete(deleteShowtime);
+
 //---------------------------------booking manipulation------------------------------------
+
 protectedAdminRouter.route("/createbooking").post(createBooking);
+protectedAdminRouter.route("/getallbookings").get(getAllBookings);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
