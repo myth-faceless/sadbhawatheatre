@@ -76,7 +76,8 @@ const createBooking = asyncHandler(async (req, res) => {
     if (!paymentPlatform) {
       throw new ApiError(
         STATUS_CODES.BAD_REQUEST,
-        "Payment platform is required for online payments"
+        ERROR_MESSAGES.REQUIRED_PAYMENT_PLATFORM ||
+          "Payment platform is required for online payments"
       );
     }
   }
@@ -128,9 +129,15 @@ const createBooking = asyncHandler(async (req, res) => {
 
   const booking = await Booking.create({
     event,
-    showtime,
+    showtime: {
+      _id: showtimeObj._id,
+      date: showtimeObj.date,
+      time: showtimeObj.time,
+      seatAvailable: showtimeObj.seatAvailable,
+    },
     user: isAdmin ? null : req.user?._id,
     bookedByAdmin: isAdmin || false,
+    adminBookedBy: isAdmin ? req.user._id : null,
     customerName: isAdmin ? customerName : req.user?.fullName,
     customerPhone: isAdmin ? customerPhone : req.user?.phoneNumber,
     tickets,
@@ -152,4 +159,103 @@ const createBooking = asyncHandler(async (req, res) => {
     );
 });
 
-export { createBooking };
+const getAllBookings = asyncHandler(async (req, res) => {
+  const { user, event, showtime } = req.query;
+
+  const filter = {};
+  if (user) filter.user = user;
+  if (event) filter.event = event;
+  if (showtime) filter.showtime = showtime;
+
+  const bookings = await Booking.find(filter)
+    .populate("user", "fullName email")
+    .populate("event", "title showTimes") // populate showTimes too
+    .populate("adminBookedBy", "fullName email")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  const processedBooking = bookings.map((booking) => {
+    // Remove admin details if not booked by admin
+    if (!booking.bookedByAdmin) {
+      delete booking.adminBookedBy;
+    }
+
+    // Add full showtime details by matching showtime._id
+    if (booking.event && booking.event.showTimes && booking.showtime?._id) {
+      const matchedShowtime = booking.event.showTimes.find(
+        (st) => st._id.toString() === booking.showtime._id.toString()
+      );
+
+      if (matchedShowtime) {
+        booking.showtime = matchedShowtime; // Replace ID with full object
+      }
+    }
+
+    // Optional: remove full showTimes array to keep response small
+    if (booking.event?.showTimes) {
+      delete booking.event.showTimes;
+    }
+
+    return booking;
+  });
+
+  res
+    .status(200)
+    .json(
+      new ApiResponse(
+        200,
+        processedBooking,
+        "Filtered bookings fetched successfully"
+      )
+    );
+});
+
+// const getAllBookings = asyncHandler(async (req, res) => {
+//   const { user, event, showtime } = req.query;
+
+//   const filter = {};
+//   if (user) filter.user = user;
+//   if (event) filter.event = event;
+//   if (showtime) filter.showtime = showtime;
+
+//   const bookings = await Booking.find(filter)
+//     .populate("user", "fullName email")
+//     .populate("event", "title")
+//     .populate("adminBookedBy", "fullName email")
+//     .sort({ createdAt: -1 })
+//     .lean();
+
+//   //remove admin details if not booked by admin
+//   const processedBooking = bookings.map((booking) => {
+//     if (!booking.bookedByAdmin) {
+//       delete booking.adminBookedBy;
+//     }
+//     if (booking.event && booking.event.showTimes && booking.showtime?._id) {
+//       const matchedShwotime = booking.event.showTimes.find(
+//         (st) => st._id.toString() === booking.showtime._id.toString()
+//       );
+
+//       if (matchedShwotime) {
+//         booking.showtime = matchedShwotime;
+//       }
+//     }
+
+//     return booking;
+//   });
+
+//   //add showtime details by matchind id:
+
+//   res
+//     .status(200)
+//     .json(
+//       new ApiResponse(
+//         200,
+//         processedBooking,
+//         "Filtered bookings fetched successfully"
+//       )
+//     );
+// });
+
+const updateBookingById = asyncHandler(async (req, res) => {});
+
+export { createBooking, getAllBookings, updateBookingById };
