@@ -1,18 +1,14 @@
 import mongoose from "mongoose";
 
-const showtimeSchema = new mongoose.Schema({
+const eventShowtimeSchema = new mongoose.Schema({
+  showtime: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Showtime",
+    required: true,
+  },
   date: {
     type: Date,
     required: true,
-  },
-  time: {
-    type: String,
-    required: true,
-  },
-  seatAvailable: {
-    type: Number,
-    required: true,
-    min: 0,
   },
 });
 
@@ -75,7 +71,7 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
-    showTimes: [showtimeSchema],
+    showTimes: [eventShowtimeSchema],
 
     adultTicketPrice: {
       type: Number,
