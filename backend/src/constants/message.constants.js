@@ -77,6 +77,8 @@ export const ERROR_MESSAGES = {
 
   MISSING_NAME_AND_CONTACT:
     "Customer name and contact required for admin booking !",
+
+  REQUIRED_PAYMENT_PLATFORM: "Payment platform is required for online payments",
 };
 
 export const SUCCESS_MESSAGES = {
