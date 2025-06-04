@@ -240,7 +240,10 @@ const addEvent = asyncHandler(async (req, res) => {
 });
 
 const getAllEvents = asyncHandler(async (req, res) => {
-  const allEvents = await Event.find().populate("showTimes.showtime");
+  const allEvents = await Event.find()
+    .populate("defaultShowtimes")
+    .populate("customShowtimes.showtime")
+    .sort({ startDate: 1 }); // Optional: Sort by start date ascending
   res
     .status(STATUS_CODES.SUCCESS)
     .json(
@@ -252,16 +255,16 @@ const getAllEvents = asyncHandler(async (req, res) => {
     );
 });
 
-const getEventById = asyncHandler(async (req, res, next) => {
+const getEventById = asyncHandler(async (req, res) => {
   const { id } = req.params;
 
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    return next(
-      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
-    );
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID);
   }
 
-  const event = await Event.findById(id).populate("showTimes.showtime");
+  const event = await Event.findById(id)
+    .populate("defaultShowtimes")
+    .populate("customShowtimes.showtime");
 
   if (!event) {
     throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
@@ -281,6 +284,15 @@ const getEventById = asyncHandler(async (req, res, next) => {
 const updateEventById = asyncHandler(async (req, res, next) => {
   const { id } = req.params;
 
+  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID);
+  }
+
+  const event = await Event.findById(id);
+  if (!event) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+  }
+
   const {
     type,
     title,
@@ -290,19 +302,13 @@ const updateEventById = asyncHandler(async (req, res, next) => {
     startDate,
     endDate,
     venue,
-    showTimes = [],
+    defaultShowtimes,
+    customShowtimes,
     adultTicketPrice,
     studentTicketPrice,
   } = req.body;
 
-  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID);
-  }
-
-  const event = await Event.findById(id);
-  if (!event) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
-  }
+  console.log(req.body);
 
   const existingEvent = await Event.findOne({ title, director });
 
@@ -316,7 +322,7 @@ const updateEventById = asyncHandler(async (req, res, next) => {
   // Parse cast
   let castParsed = [];
   try {
-    castParsed = typeof cast === "string" ? JSON.parse(cast.trim()) : cast;
+    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
     for (const member of castParsed) {
       if (!member.name) {
         throw new ApiError(
@@ -329,68 +335,91 @@ const updateEventById = asyncHandler(async (req, res, next) => {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
   }
 
-  // Parse and validate showTimes
-  let showTimesParsed = [];
+  // Parse and validate defaultShowtimes
   try {
-    showTimesParsed =
-      typeof showTimes === "string" ? JSON.parse(showTimes.trim()) : showTimes;
+    let parsedDefaultShowtimes =
+      typeof defaultShowtimes === "string"
+        ? JSON.parse(defaultShowtimes)
+        : defaultShowtimes;
 
-    if (!Array.isArray(showTimesParsed)) {
-      throw new ApiError(
-        STATUS_CODES.BAD_REQUEST,
-        "'showTimes' must be an array"
-      );
+    if (!Array.isArray(parsedDefaultShowtimes)) {
+      throw new Error("defaultShowtimes must be an array");
     }
 
-    const validShowtimes = [];
-
-    for (const st of showTimesParsed) {
-      if (!st.showtime || !st.date) {
-        throw new ApiError(
-          STATUS_CODES.BAD_REQUEST,
-          "Each showtime must include 'showtime' and 'date'"
-        );
-      }
-
-      const showtimeExists = await Showtime.findById(st.showtime);
-      if (!showtimeExists) {
+    for (const st of parsedDefaultShowtimes) {
+      const exists = await Showtime.findById(st);
+      if (!exists) {
         throw new ApiError(
           STATUS_CODES.NOT_FOUND,
-          `Showtime with ID ${st.showtime} does not exist`
+          `Showtime with ID ${st} does not exist`
         );
       }
-
-      const stDate = new Date(st.date);
-      const start = new Date(startDate || event.startDate);
-      const end = new Date(endDate || event.endDate);
-
-      if (stDate < start || stDate > end) {
-        throw new ApiError(
-          STATUS_CODES.BAD_REQUEST,
-          `Showtime date ${
-            stDate.toISOString().split("T")[0]
-          } is outside the event range`
-        );
-      }
-
-      validShowtimes.push({
-        showtime: st.showtime,
-        date: stDate,
-      });
     }
 
-    showTimesParsed = validShowtimes;
+    event.defaultShowtimes = parsedDefaultShowtimes;
   } catch (err) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
-      `Invalid JSON in 'showTimes' or validation failed: ${err.message}`
+      `Invalid defaultShowtimes format or validation failed: ${err.message}`
     );
+  }
+
+  // Parse and validate customShowtimes
+  if (customShowtimes) {
+    let parsedCustomShowtimes;
+    try {
+      parsedCustomShowtimes =
+        typeof customShowtimes === "string"
+          ? JSON.parse(customShowtimes)
+          : customShowtimes;
+
+      if (!Array.isArray(parsedCustomShowtimes)) {
+        throw new Error("customShowtimes must be an array");
+      }
+
+      for (const entry of parsedCustomShowtimes) {
+        if (!entry.date || !Array.isArray(entry.showtime)) {
+          throw new Error(
+            "Each customShowtime must have date and showtime array"
+          );
+        }
+
+        const stDate = new Date(entry.date);
+        const start = new Date(startDate || event.startDate);
+        const end = new Date(endDate || event.endDate);
+
+        if (stDate < start || stDate > end) {
+          throw new ApiError(
+            STATUS_CODES.BAD_REQUEST,
+            `Custom showtime date ${
+              stDate.toISOString().split("T")[0]
+            } is outside event range`
+          );
+        }
+
+        for (const stId of entry.showtime) {
+          const exists = await Showtime.findById(stId);
+          if (!exists) {
+            throw new ApiError(
+              STATUS_CODES.NOT_FOUND,
+              `Showtime with ID ${stId} does not exist`
+            );
+          }
+        }
+      }
+
+      event.customShowtimes = parsedCustomShowtimes;
+    } catch (err) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        `Invalid customShowtimes format or validation failed: ${err.message}`
+      );
+    }
   }
 
   // Handle file upload (photos)
   const uploadedFiles = req.files;
   if (uploadedFiles && uploadedFiles.length > 0) {
-    // Delete previous photos
     if (event.photos && event.photos.length > 0) {
       for (const photo of event.photos) {
         if (photo.public_id) {
@@ -429,9 +458,12 @@ const updateEventById = asyncHandler(async (req, res, next) => {
   event.startDate = startDate || event.startDate;
   event.endDate = endDate || event.endDate;
   event.venue = venue || event.venue;
-  event.showTimes = showTimesParsed || event.showTimes;
-  event.adultTicketPrice = adultTicketPrice || event.adultTicketPrice;
-  event.studentTicketPrice = studentTicketPrice || event.studentTicketPrice;
+  event.adultTicketPrice = adultTicketPrice
+    ? +adultTicketPrice
+    : event.adultTicketPrice;
+  event.studentTicketPrice = studentTicketPrice
+    ? +studentTicketPrice
+    : event.studentTicketPrice;
 
   try {
     await event.save();
