@@ -13,7 +13,6 @@ import {
   uploadFilesToCloudinary,
   deleteFileFromCloudinary,
 } from "../utils/cloudinary.js";
-import { updateProfile } from "./global.controller.js";
 
 const addEvent = asyncHandler(async (req, res) => {
   const {
