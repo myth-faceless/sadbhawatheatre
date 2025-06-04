@@ -1,17 +1,5 @@
 import mongoose from "mongoose";
 
-const eventShowtimeSchema = new mongoose.Schema({
-  showtime: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Showtime",
-    required: true,
-  },
-  date: {
-    type: Date,
-    required: true,
-  },
-});
-
 const photoSchema = new mongoose.Schema({
   url: {
     type: String,
@@ -22,6 +10,20 @@ const photoSchema = new mongoose.Schema({
     required: false,
     default: null,
   },
+});
+
+const customShowtimeSchema = new mongoose.Schema({
+  date: {
+    type: Date,
+    required: true,
+  },
+  showtime: [
+    {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Showtime",
+      required: true,
+    },
+  ],
 });
 
 const eventSchema = new mongoose.Schema(
@@ -71,7 +73,14 @@ const eventSchema = new mongoose.Schema(
       required: true,
     },
 
-    showTimes: [eventShowtimeSchema],
+    defaultShowtimes: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Showtime",
+        required: true,
+      },
+    ],
+    customShowtimes: [customShowtimeSchema],
 
     adultTicketPrice: {
       type: Number,
