@@ -1,4 +1,5 @@
 import { Event } from "../models/event.model.js";
+import { Showtime } from "../models/showTime.model.js";
 import { DEFAULT_ICON } from "../constants/app.constants.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiErrors.js";
@@ -29,6 +30,8 @@ const addEvent = asyncHandler(async (req, res) => {
     studentTicketPrice,
   } = req.body;
 
+  console.log("Incoming form-data:", req.body);
+
   if (
     !type ||
     !title ||
@@ -37,6 +40,7 @@ const addEvent = asyncHandler(async (req, res) => {
     !startDate ||
     !endDate ||
     !venue ||
+    !showTimes ||
     !adultTicketPrice ||
     !studentTicketPrice
   ) {
@@ -62,21 +66,77 @@ const addEvent = asyncHandler(async (req, res) => {
   ];
 
   let castParsed = [];
-  let showTimesParsed = [];
-
   try {
     castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
+    for (const member of castParsed) {
+      if (!member.name) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Each cast member must include a 'name'"
+        );
+      }
+    }
   } catch {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
   }
 
+  let showTimesParsed = [];
   try {
-    showTimesParsed =
-      typeof showTimes === "string" ? JSON.parse(showTimes) : showTimes;
-  } catch {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'showTimes'");
-  }
+    console.log("Raw showTimes string before parsing:", showTimes);
 
+    const cleanShowTimesStr =
+      typeof showTimes === "string" ? showTimes.trim() : showTimes;
+    showTimesParsed =
+      typeof cleanShowTimesStr === "string"
+        ? JSON.parse(cleanShowTimesStr)
+        : cleanShowTimesStr;
+
+    console.log("Parsed showTimes array:", showTimesParsed);
+
+    if (!Array.isArray(showTimesParsed) || showTimesParsed.length === 0) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        "showTimes must be a non-empty array"
+      );
+    }
+
+    // Validate each showtime object
+    for (const st of showTimesParsed) {
+      if (!st.showtime || !st.date) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Each showtime must include 'showtime' and 'date'"
+        );
+      }
+
+      const showtimeExists = await Showtime.findById(st.showtime);
+      if (!showtimeExists) {
+        throw new ApiError(
+          STATUS_CODES.NOT_FOUND,
+          `Showtime with ID ${st.showtime} does not exist`
+        );
+      }
+
+      const stDate = new Date(st.date);
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      if (stDate < start || stDate > end) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          `Showtime date ${
+            stDate.toISOString().split("T")[0]
+          } is outside the event range`
+        );
+      }
+    }
+  } catch (err) {
+    console.error("Error parsing showTimes or validating showTimes:", err);
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      `Invalid JSON in 'showTimes' or validation failed: ${err.message}`
+    );
+  }
   //upload files to cloudinary
   const uploadedFiles = req.files; // from multer
   try {
@@ -120,6 +180,16 @@ const addEvent = asyncHandler(async (req, res) => {
       studentTicketPrice,
       photos,
     });
+
+    return res
+      .status(STATUS_CODES.CREATED)
+      .json(
+        new ApiResponse(
+          STATUS_CODES.CREATED,
+          newEvent,
+          SUCCESS_MESSAGES.CREATED || "Event created successfully!"
+        )
+      );
   } catch (err) {
     console.error("Error saving event:", err);
     throw new ApiError(
@@ -128,19 +198,10 @@ const addEvent = asyncHandler(async (req, res) => {
       [err.message]
     );
   }
-  return res
-    .status(STATUS_CODES.CREATED)
-    .json(
-      new ApiResponse(
-        STATUS_CODES.CREATED,
-        newEvent,
-        SUCCESS_MESSAGES.CREATED || "Event created successfully!"
-      )
-    );
 });
 
 const getAllEvents = asyncHandler(async (req, res) => {
-  const allEvents = await Event.find();
+  const allEvents = await Event.find().populate("showTimes.showtime");
   res
     .status(STATUS_CODES.SUCCESS)
     .json(
@@ -161,7 +222,7 @@ const getEventById = asyncHandler(async (req, res, next) => {
     );
   }
 
-  const event = await Event.findById(id);
+  const event = await Event.findById(id).populate("showTimes.showtime");
 
   if (!event) {
     throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
@@ -196,58 +257,108 @@ const updateEventById = asyncHandler(async (req, res, next) => {
   } = req.body;
 
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    return next(
-      new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID)
-    );
-  }
-  const event = await Event.findById(id);
-  if (!event) {
-    throw new ApiError(
-      STATUS_CODES.NOT_FOUND,
-      ERROR_MESSAGES.NOT_FOUND || "Event not found"
-    );
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, ERROR_MESSAGES.INVALID_ID);
   }
 
-  const duplicateEvent = await Event.findOne({
-    title,
-    director,
-  });
-  if (duplicateEvent) {
+  const event = await Event.findById(id);
+  if (!event) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, ERROR_MESSAGES.NOT_FOUND);
+  }
+
+  const existingEvent = await Event.findOne({ title, director });
+
+  if (existingEvent && existingEvent._id.toString() !== id) {
     throw new ApiError(
       STATUS_CODES.DUPLICATE_ENTRY,
       ERROR_MESSAGES.EVENT_ALREADY_EXISTS
     );
   }
 
+  // Parse cast
   let castParsed = [];
-  let showTimesParsed = [];
-
   try {
-    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
+    castParsed = typeof cast === "string" ? JSON.parse(cast.trim()) : cast;
+    for (const member of castParsed) {
+      if (!member.name) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Each cast member must include a 'name'"
+        );
+      }
+    }
   } catch {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
   }
 
+  // Parse and validate showTimes
+  let showTimesParsed = [];
   try {
     showTimesParsed =
-      typeof showTimes === "string" ? JSON.parse(showTimes) : showTimes;
-  } catch {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'showTimes'");
+      typeof showTimes === "string" ? JSON.parse(showTimes.trim()) : showTimes;
+
+    if (!Array.isArray(showTimesParsed)) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        "'showTimes' must be an array"
+      );
+    }
+
+    const validShowtimes = [];
+
+    for (const st of showTimesParsed) {
+      if (!st.showtime || !st.date) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Each showtime must include 'showtime' and 'date'"
+        );
+      }
+
+      const showtimeExists = await Showtime.findById(st.showtime);
+      if (!showtimeExists) {
+        throw new ApiError(
+          STATUS_CODES.NOT_FOUND,
+          `Showtime with ID ${st.showtime} does not exist`
+        );
+      }
+
+      const stDate = new Date(st.date);
+      const start = new Date(startDate || event.startDate);
+      const end = new Date(endDate || event.endDate);
+
+      if (stDate < start || stDate > end) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          `Showtime date ${
+            stDate.toISOString().split("T")[0]
+          } is outside the event range`
+        );
+      }
+
+      validShowtimes.push({
+        showtime: st.showtime,
+        date: stDate,
+      });
+    }
+
+    showTimesParsed = validShowtimes;
+  } catch (err) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      `Invalid JSON in 'showTimes' or validation failed: ${err.message}`
+    );
   }
 
-  // Handle photo update
+  // Handle file upload (photos)
   const uploadedFiles = req.files;
-
   if (uploadedFiles && uploadedFiles.length > 0) {
-    // Delete existing photos from Cloudinary
-
+    // Delete previous photos
     if (event.photos && event.photos.length > 0) {
       for (const photo of event.photos) {
         if (photo.public_id) {
           try {
             await deleteFileFromCloudinary(photo.public_id);
-          } catch (error) {
-            console.error("Cloudinary deletion failed:", error.message);
+          } catch (err) {
+            console.error("Cloudinary deletion failed:", err.message);
           }
         }
       }
@@ -255,24 +366,22 @@ const updateEventById = asyncHandler(async (req, res, next) => {
 
     try {
       const uploadedImages = await uploadFilesToCloudinary(uploadedFiles);
-
       if (uploadedImages.length > 0) {
         event.photos = uploadedImages.map((img) => ({
           url: img.url,
           public_id: img.public_id,
         }));
       }
-    } catch (error) {
-      console.error("Cloudinary upload failed:", error.message);
+    } catch (err) {
       throw new ApiError(
         STATUS_CODES.INTERNAL_SERVER_ERROR,
         ERROR_MESSAGES.CLOUDINARY_UPLOAD_FAILED,
-        [error.message]
+        [err.message]
       );
     }
   }
 
-  // Update fields
+  // Update event fields
   event.type = type || event.type;
   event.title = title || event.title;
   event.description = description || event.description;
@@ -287,19 +396,22 @@ const updateEventById = asyncHandler(async (req, res, next) => {
 
   try {
     await event.save();
-
-    return res.status(200).json({
-      status: "success",
-      data: event,
-      message: "Event updated successfully!",
-    });
+    return res
+      .status(STATUS_CODES.SUCCESS)
+      .json(
+        new ApiResponse(
+          STATUS_CODES.SUCCESS,
+          event,
+          SUCCESS_MESSAGES.UPDATED || "Event updated successfully!"
+        )
+      );
   } catch (err) {
     console.error("Error saving event:", err);
-    return res.status(500).json({
-      status: "error",
-      message: "Internal Server Error",
-      error: err.message,
-    });
+    throw new ApiError(
+      STATUS_CODES.INTERNAL_SERVER_ERROR,
+      ERROR_MESSAGES.FAILED,
+      [err.message]
+    );
   }
 });
 
@@ -332,9 +444,6 @@ const deleteEventById = asyncHandler(async (req, res, next) => {
           );
         }
       }
-      //else {
-      //   console.log("Skipping photo without public_id:");
-      // }
     }
   }
 
