@@ -24,6 +24,7 @@ import { getAllTeamMembers } from "../controllers/team.controller.js";
 import { getAllPublications } from "../controllers/publication.controller..js";
 import { getAllEvents } from "../controllers/event.controller.js";
 import { createBooking } from "../controllers/booking.controller.js";
+import { getAllShowtimes } from "../controllers/showtime.controller.js";
 
 const router = Router();
 
@@ -44,6 +45,7 @@ router
 router.route("/getallmembers").get(getAllTeamMembers);
 router.route("/getallpublications").get(getAllPublications);
 router.route("/getallevents").get(getAllEvents);
+router.route("/getallshowtimes").get(getAllShowtimes);
 
 //-------------------------protected global routes-------------------------------
 
