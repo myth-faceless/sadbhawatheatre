@@ -30,7 +30,7 @@ const addEvent = asyncHandler(async (req, res) => {
     studentTicketPrice,
   } = req.body;
 
-  console.log("Incoming form-data:", req.body);
+  // console.log("Incoming form-data:", req.body);
 
   if (
     !type ||
@@ -306,8 +306,6 @@ const updateEventById = asyncHandler(async (req, res, next) => {
     adultTicketPrice,
     studentTicketPrice,
   } = req.body;
-
-  console.log(req.body);
 
   const existingEvent = await Event.findOne({ title, director });
 
