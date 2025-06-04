@@ -1,3 +1,4 @@
+import { Showtime } from "../models/showTime.model.js";
 import { Booking } from "../models/booking.model.js";
 import { Event } from "../models/event.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
@@ -45,6 +46,11 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
+  const existingShowtime = await Showtime.findById(showtime);
+  if (!existingShowtime) {
+    throw new ApiError(STATUS_CODES.NOT_FOUND, "Showtime not found");
+  }
+
   const isAdmin = req.user?.role === "admin";
 
   //user booking must be online.
@@ -57,7 +63,7 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
-  //if payment method is online, payment ref, is required
+  //validate online payment requirements
   if (paymentMethod === "online") {
     if (!paymentReference) {
       throw new ApiError(
@@ -80,8 +86,17 @@ const createBooking = asyncHandler(async (req, res) => {
           "Payment platform is required for online payments"
       );
     }
+
+    const existingBooking = await Booking.findOne({ paymentReference });
+    if (existingBooking) {
+      throw new ApiError(
+        STATUS_CODES.DUPLICATE_ENTRY,
+        "This payment reference has already been used"
+      );
+    }
   }
 
+  //admin must provide customer detsils for booking by admin
   if (isAdmin && (!customerName || !customerPhone)) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -90,53 +105,41 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
-  if (paymentMethod === "online" && !paymentReference) {
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      ERROR_MESSAGES.PAYMENT_REFERENCE_REQUIRED ||
-        "Payment reference is required for online payments"
-    );
-  }
-
-  if (paymentReference) {
-    const existingBooking = await Booking.findOne({ paymentReference });
-    if (existingBooking) {
-      throw new ApiError(
-        STATUS_CODES.DUPLICATE_ENTRY,
-        "This payment reference has already been used for a booking."
-      );
-    }
-  }
-
-  const showtimeObj = existingEvent.showTimes.id(showtime);
-
-  if (!showtimeObj) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, "Showtime not found");
-  }
-
   const totalTicketsRequested = (tickets.adult || 0) + (tickets.student || 0);
 
-  if (showtimeObj.seatAvailable < totalTicketsRequested) {
+  // Calculate how many tickets already booked for this showtime
+  const aggregationResult = await Booking.aggregate([
+    { $match: { showtime: existingShowtime._id } },
+    {
+      $group: {
+        _id: null,
+        totalBooked: {
+          $sum: {
+            $add: [
+              { $ifNull: ["$tickets.adult", 0] },
+              { $ifNull: ["$tickets.student", 0] },
+            ],
+          },
+        },
+      },
+    },
+  ]);
+
+  const totalBookedSoFar = aggregationResult[0]?.totalBooked || 0;
+  const seatAvailable = existingShowtime.seatCapacity - totalBookedSoFar;
+
+  if (seatAvailable < totalTicketsRequested) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
-      `Only ${showtimeObj.seatAvailable} seats are available`
+      `Only ${seatAvailable} seats are available for this showtime`
     );
   }
-
-  showtimeObj.seatAvailable -= totalTicketsRequested;
-
-  await existingEvent.save();
 
   const booking = await Booking.create({
     event,
-    showtime: {
-      _id: showtimeObj._id,
-      date: showtimeObj.date,
-      time: showtimeObj.time,
-      seatAvailable: showtimeObj.seatAvailable,
-    },
+    showtime,
     user: isAdmin ? null : req.user?._id,
-    bookedByAdmin: isAdmin || false,
+    bookedByAdmin: isAdmin,
     adminBookedBy: isAdmin ? req.user._id : null,
     customerName: isAdmin ? customerName : req.user?.fullName,
     customerPhone: isAdmin ? customerPhone : req.user?.phoneNumber,
@@ -147,7 +150,6 @@ const createBooking = asyncHandler(async (req, res) => {
     paymentPlatform: paymentMethod === "online" ? paymentPlatform : null,
     paymentReference: paymentMethod === "online" ? paymentReference : null,
   });
-
   return res
     .status(STATUS_CODES.CREATED)
     .json(
@@ -169,7 +171,8 @@ const getAllBookings = asyncHandler(async (req, res) => {
 
   const bookings = await Booking.find(filter)
     .populate("user", "fullName email")
-    .populate("event", "title showTimes") // populate showTimes too
+    .populate("event", "title showTimes")
+    .populate("showtime", "time date")
     .populate("adminBookedBy", "fullName email")
     .sort({ createdAt: -1 })
     .lean();
