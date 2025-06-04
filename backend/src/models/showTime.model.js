@@ -12,6 +12,10 @@ const showtimeSchema = new mongoose.Schema(
       required: true,
       min: 1,
     },
+    totalBookingsSoFar: {
+      type: Number,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
