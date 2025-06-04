@@ -11,6 +11,11 @@ export const createShowtime = asyncHandler(async (req, res) => {
     throw new ApiError(400, "Time and seat capacity are required !");
   }
 
+  const existingShowtime = await Showtime.findOne({ time, seatCapacity });
+  if (existingShowtime) {
+    throw new ApiError(409, "Showtime already exists !");
+  }
+
   const showtime = await Showtime.create({ time, seatCapacity });
 
   res
