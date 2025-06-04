@@ -25,7 +25,8 @@ const addEvent = asyncHandler(async (req, res) => {
     startDate,
     endDate,
     venue,
-    showTimes = [],
+    defaultShowtimes, // array of showtime IDs
+    customShowtimes, // array of { date, showtime: [showtimeIDs] }
     adultTicketPrice,
     studentTicketPrice,
   } = req.body;
@@ -40,7 +41,6 @@ const addEvent = asyncHandler(async (req, res) => {
     !startDate ||
     !endDate ||
     !venue ||
-    !showTimes ||
     !adultTicketPrice ||
     !studentTicketPrice
   ) {
@@ -48,6 +48,116 @@ const addEvent = asyncHandler(async (req, res) => {
       STATUS_CODES.BAD_REQUEST,
       ERROR_MESSAGES.ALL_FIELDS_REQUIRED
     );
+  }
+
+  // Validate defaultShowtimes (must be non-empty array)
+  let defaultShowtimesParsed = [];
+  try {
+    defaultShowtimesParsed =
+      typeof defaultShowtimes === "string"
+        ? JSON.parse(defaultShowtimes)
+        : defaultShowtimes;
+
+    if (
+      !Array.isArray(defaultShowtimesParsed) ||
+      defaultShowtimesParsed.length === 0
+    ) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        "'defaultShowtimes' must be a non-empty array of showtime IDs"
+      );
+    }
+
+    // Validate each default showtime exists
+    for (const showtimeId of defaultShowtimesParsed) {
+      if (!(await Showtime.findById(showtimeId))) {
+        throw new ApiError(
+          STATUS_CODES.NOT_FOUND,
+          `Default showtime ID ${showtimeId} does not exist`
+        );
+      }
+    }
+  } catch (err) {
+    throw new ApiError(
+      STATUS_CODES.BAD_REQUEST,
+      `Invalid 'defaultShowtimes' format or validation failed: ${err.message}`
+    );
+  }
+
+  // Validate customShowtimes (optional, can be empty array)
+  let customShowtimesParsed = [];
+  if (customShowtimes) {
+    try {
+      customShowtimesParsed =
+        typeof customShowtimes === "string"
+          ? JSON.parse(customShowtimes)
+          : customShowtimes;
+
+      if (!Array.isArray(customShowtimesParsed)) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "'customShowtimes' must be an array"
+        );
+      }
+
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+
+      for (const custom of customShowtimesParsed) {
+        if (!custom.date || !custom.showtime) {
+          throw new ApiError(
+            STATUS_CODES.BAD_REQUEST,
+            "Each customShowtime must include 'date' and 'showtime' array"
+          );
+        }
+
+        const customDate = new Date(custom.date);
+        if (customDate < start || customDate > end) {
+          throw new ApiError(
+            STATUS_CODES.BAD_REQUEST,
+            `Custom showtime date ${custom.date} is outside event range`
+          );
+        }
+
+        if (!Array.isArray(custom.showtime) || custom.showtime.length === 0) {
+          throw new ApiError(
+            STATUS_CODES.BAD_REQUEST,
+            "'showtime' inside customShowtime must be a non-empty array"
+          );
+        }
+
+        // Validate each showtime ID in customShowtime exists
+        for (const showtimeId of custom.showtime) {
+          if (!(await Showtime.findById(showtimeId))) {
+            throw new ApiError(
+              STATUS_CODES.NOT_FOUND,
+              `Custom showtime ID ${showtimeId} does not exist`
+            );
+          }
+        }
+      }
+    } catch (err) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        `Invalid 'customShowtimes' format or validation failed: ${err.message}`
+      );
+    }
+  }
+
+  // Validate cast JSON
+  let castParsed = [];
+  try {
+    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
+    for (const member of castParsed) {
+      if (!member.name) {
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Each cast member must include a 'name'"
+        );
+      }
+    }
+  } catch {
+    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
   }
 
   const existingEvent = await Event.findOne({ title, director });
@@ -65,78 +175,6 @@ const addEvent = asyncHandler(async (req, res) => {
     },
   ];
 
-  let castParsed = [];
-  try {
-    castParsed = typeof cast === "string" ? JSON.parse(cast) : cast;
-    for (const member of castParsed) {
-      if (!member.name) {
-        throw new ApiError(
-          STATUS_CODES.BAD_REQUEST,
-          "Each cast member must include a 'name'"
-        );
-      }
-    }
-  } catch {
-    throw new ApiError(STATUS_CODES.BAD_REQUEST, "Invalid JSON in 'cast'");
-  }
-
-  let showTimesParsed = [];
-  try {
-    console.log("Raw showTimes string before parsing:", showTimes);
-
-    const cleanShowTimesStr =
-      typeof showTimes === "string" ? showTimes.trim() : showTimes;
-    showTimesParsed =
-      typeof cleanShowTimesStr === "string"
-        ? JSON.parse(cleanShowTimesStr)
-        : cleanShowTimesStr;
-
-    console.log("Parsed showTimes array:", showTimesParsed);
-
-    if (!Array.isArray(showTimesParsed) || showTimesParsed.length === 0) {
-      throw new ApiError(
-        STATUS_CODES.BAD_REQUEST,
-        "showTimes must be a non-empty array"
-      );
-    }
-
-    // Validate each showtime object
-    for (const st of showTimesParsed) {
-      if (!st.showtime || !st.date) {
-        throw new ApiError(
-          STATUS_CODES.BAD_REQUEST,
-          "Each showtime must include 'showtime' and 'date'"
-        );
-      }
-
-      const showtimeExists = await Showtime.findById(st.showtime);
-      if (!showtimeExists) {
-        throw new ApiError(
-          STATUS_CODES.NOT_FOUND,
-          `Showtime with ID ${st.showtime} does not exist`
-        );
-      }
-
-      const stDate = new Date(st.date);
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-
-      if (stDate < start || stDate > end) {
-        throw new ApiError(
-          STATUS_CODES.BAD_REQUEST,
-          `Showtime date ${
-            stDate.toISOString().split("T")[0]
-          } is outside the event range`
-        );
-      }
-    }
-  } catch (err) {
-    console.error("Error parsing showTimes or validating showTimes:", err);
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      `Invalid JSON in 'showTimes' or validation failed: ${err.message}`
-    );
-  }
   //upload files to cloudinary
   const uploadedFiles = req.files; // from multer
   try {
@@ -175,7 +213,8 @@ const addEvent = asyncHandler(async (req, res) => {
       startDate,
       endDate,
       venue,
-      showTimes: showTimesParsed,
+      defaultShowtimes: defaultShowtimesParsed,
+      customShowtimes: customShowtimesParsed,
       adultTicketPrice,
       studentTicketPrice,
       photos,
