@@ -7,8 +7,13 @@ const bookingSchema = new mongoose.Schema(
       ref: "Event",
       required: true,
     },
+    date: {
+      type: Date,
+      required: true,
+    },
     showtime: {
-      type: Object,
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Showtime",
       required: true,
     },
     user: {
