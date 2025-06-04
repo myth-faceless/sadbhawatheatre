@@ -52,7 +52,7 @@ export const getShowtimeById = asyncHandler(async (req, res) => {
 
 export const updateShowtimeById = asyncHandler(async (req, res) => {
   const { id } = req.params;
-  const { time, seatCapacity } = req.body;
+  const { time, seatCapacity, totalBookingsSoFar } = req.body;
 
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
     throw new ApiError(400, "Invalid MongoDB ID !");
@@ -60,7 +60,7 @@ export const updateShowtimeById = asyncHandler(async (req, res) => {
 
   const updated = await Showtime.findByIdAndUpdate(
     id,
-    { time, seatCapacity },
+    { time, seatCapacity, totalBookingsSoFar },
     { new: true, runValidators: true }
   );
 
