@@ -14,6 +14,7 @@ const createBooking = asyncHandler(async (req, res) => {
   const {
     event,
     showtime,
+    date,
     customerName,
     customerPhone,
     tickets,
@@ -27,6 +28,7 @@ const createBooking = asyncHandler(async (req, res) => {
   if (
     !event ||
     !showtime ||
+    !date ||
     !tickets ||
     typeof totalAmount !== "number" ||
     !paymentMethod
@@ -38,7 +40,6 @@ const createBooking = asyncHandler(async (req, res) => {
   }
 
   const existingEvent = await Event.findById(event);
-
   if (!existingEvent) {
     throw new ApiError(
       STATUS_CODES.NOT_FOUND,
@@ -53,8 +54,6 @@ const createBooking = asyncHandler(async (req, res) => {
 
   const isAdmin = req.user?.role === "admin";
 
-  //user booking must be online.
-
   if (!isAdmin && paymentMethod !== "online") {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -63,7 +62,6 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
-  //validate online payment requirements
   if (paymentMethod === "online") {
     if (!paymentReference) {
       throw new ApiError(
@@ -96,7 +94,6 @@ const createBooking = asyncHandler(async (req, res) => {
     }
   }
 
-  //admin must provide customer detsils for booking by admin
   if (isAdmin && (!customerName || !customerPhone)) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
@@ -105,11 +102,18 @@ const createBooking = asyncHandler(async (req, res) => {
     );
   }
 
-  const totalTicketsRequested = (tickets.adult || 0) + (tickets.student || 0);
+  const adultTickets = tickets?.adult || 0;
+  const studentTickets = tickets?.student || 0;
+  const totalTicketsRequested = adultTickets + studentTickets;
 
-  // Calculate how many tickets already booked for this showtime
+  // Calculate total booked for this showtime and date
   const aggregationResult = await Booking.aggregate([
-    { $match: { showtime: existingShowtime._id } },
+    {
+      $match: {
+        showtime: existingShowtime._id,
+        date: new Date(date),
+      },
+    },
     {
       $group: {
         _id: null,
@@ -126,18 +130,21 @@ const createBooking = asyncHandler(async (req, res) => {
   ]);
 
   const totalBookedSoFar = aggregationResult[0]?.totalBooked || 0;
-  const seatAvailable = existingShowtime.seatCapacity - totalBookedSoFar;
+  console.log("total booked so far", totalBookedSoFar);
+  const seatsLeft = existingShowtime.seatCapacity - totalBookedSoFar;
 
-  if (seatAvailable < totalTicketsRequested) {
+  if (seatsLeft < totalTicketsRequested) {
     throw new ApiError(
       STATUS_CODES.BAD_REQUEST,
-      `Only ${seatAvailable} seats are available for this showtime`
+      `Only ${seatsLeft} seats are available for this showtime on this date`
     );
   }
 
+  // Create booking
   const booking = await Booking.create({
     event,
     showtime,
+    date: new Date(date),
     user: isAdmin ? null : req.user?._id,
     bookedByAdmin: isAdmin,
     adminBookedBy: isAdmin ? req.user._id : null,
@@ -150,12 +157,22 @@ const createBooking = asyncHandler(async (req, res) => {
     paymentPlatform: paymentMethod === "online" ? paymentPlatform : null,
     paymentReference: paymentMethod === "online" ? paymentReference : null,
   });
+
+  // Update totalBookingsSoFar (optional)
+  await Showtime.updateOne(
+    { _id: showtime },
+    { $inc: { totalBookingsSoFar: totalTicketsRequested } }
+  );
+
+  const bookingData = booking.toObject();
+  bookingData.availableSeats = seatsLeft;
+
   return res
     .status(STATUS_CODES.CREATED)
     .json(
       new ApiResponse(
         STATUS_CODES.CREATED,
-        booking,
+        bookingData,
         SUCCESS_MESSAGES.CREATED || "Booking created successfully"
       )
     );
