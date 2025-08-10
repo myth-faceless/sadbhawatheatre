@@ -1,5 +1,16 @@
 import mongoose from "mongoose";
 
+const ticketSchema = new mongoose.Schema(
+  {
+    ticketId: { type: mongoose.Schema.Types.ObjectId, required: true },
+    type: { type: String, enum: ["adult", "student"], required: true },
+    qrCode: { type: String, required: true },
+    attendance: { type: Boolean, default: false },
+    scannedAt: { type: Date, default: null },
+  },
+  { _id: false }
+);
+
 const bookingSchema = new mongoose.Schema(
   {
     event: {
@@ -71,12 +82,11 @@ const bookingSchema = new mongoose.Schema(
       default: null,
       unique: true,
     },
-    attendance: {
-      type: Boolean,
-      default: false,
-    },
+    issuedTickets: [ticketSchema],
   },
   { timestamps: true }
 );
+
+bookingSchema.index({ "issuedTickets.ticketId": 1 });
 
 export const Booking = mongoose.model("Booking", bookingSchema);
