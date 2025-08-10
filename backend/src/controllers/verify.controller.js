@@ -7,34 +7,53 @@ import {
   ERROR_MESSAGES,
   SUCCESS_MESSAGES,
 } from "../constants/message.constants.js";
+import mongoose from "mongoose";
 
+// function verifyTicketToken(ticketId, hash) {
+//   const secret = process.env.QR_SECRET_KEY;
+//   const expectedHash = crypto
+//     .createHmac("sha256", secret)
+//     .update(ticketId)
+//     .digest("hex");
+//   return expectedHash === hash;
+// }
 function verifyTicketToken(ticketId, hash) {
   const secret = process.env.QR_SECRET_KEY;
   const expectedHash = crypto
     .createHmac("sha256", secret)
     .update(ticketId)
     .digest("hex");
+  if (expectedHash !== hash) {
+    console.log("Token mismatch:", {
+      expectedHash,
+      providedHash: hash,
+      ticketId,
+    });
+  }
   return expectedHash === hash;
 }
 
 const verifyTicket = asyncHandler(async (req, res) => {
   const { ticketId, hash } = req.body;
-
+  console.log("ticketId received:", JSON.stringify(ticketId));
   if (!ticketId || !hash) {
     throw new ApiError(STATUS_CODES.BAD_REQUEST, "Missing ticketId or hash");
   }
 
+  // Verify the token first using ticketId as string
   if (!verifyTicketToken(ticketId, hash)) {
     throw new ApiError(STATUS_CODES.UNAUTHORIZED, "Invalid QR code token");
   }
 
-  // Find the booking containing this ticket
-  const booking = await Booking.findOne({ "issuedTickets.ticketId": ticketId });
+  // Find booking that contains the ticket with matching ObjectId
+  const booking = await Booking.findOne({
+    "issuedTickets.ticketId": ticketId,
+  });
   if (!booking) {
     throw new ApiError(STATUS_CODES.NOT_FOUND, "Ticket not found");
   }
 
-  // Find the ticket inside the booking
+  // Find the exact ticket in issuedTickets array by matching ObjectId string
   const ticket = booking.issuedTickets.find(
     (t) => t.ticketId.toString() === ticketId
   );
@@ -47,7 +66,7 @@ const verifyTicket = asyncHandler(async (req, res) => {
     throw new ApiError(STATUS_CODES.CONFLICT, "Ticket already scanned");
   }
 
-  // Mark attendance
+  // Mark attendance and save
   ticket.attendance = true;
   ticket.scannedAt = new Date();
 
