@@ -58,6 +58,7 @@ import {
   getShowtimeById,
   updateShowtimeById,
 } from "../controllers/showtime.controller.js";
+import { verifyTicket } from "../controllers/verify.controller.js";
 
 const router = Router();
 //-------------------------- public admin route-----------------------------------
@@ -161,6 +162,10 @@ protectedAdminRouter.route("/deleteshowtime/:id").delete(deleteShowtime);
 
 protectedAdminRouter.route("/createbooking").post(createBooking);
 protectedAdminRouter.route("/getallbookings").get(getAllBookings);
+
+//-------------------------------ticket verification -------------------------------------
+
+protectedAdminRouter.route("/verify-ticket").post(verifyTicket);
 
 router.use("/", protectedAdminRouter);
 export { router as adminRoutes };
