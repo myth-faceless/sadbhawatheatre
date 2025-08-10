@@ -10,172 +10,185 @@ import {
 import { ApiError } from "../utils/ApiErrors.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
-const createBooking = asyncHandler(async (req, res) => {
-  const {
-    event,
-    showtime,
-    date,
-    customerName,
-    customerPhone,
-    tickets,
-    totalAmount,
-    paymentStatus,
-    paymentMethod,
-    paymentPlatform,
-    paymentReference,
-  } = req.body;
+import mongoose from "mongoose";
+import QRCode from "qrcode";
+import crypto from "crypto";
 
-  if (
-    !event ||
-    !showtime ||
-    !date ||
-    !tickets ||
-    typeof totalAmount !== "number" ||
-    !paymentMethod
-  ) {
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      "Missing required booking fields"
-    );
-  }
+function generateTicketToken(ticketId) {
+  return crypto
+    .createHmac("sha256", process.env.QR_SECRET_KEY)
+    .update(ticketId.toString())
+    .digest("hex");
+}
 
-  const existingEvent = await Event.findById(event);
-  if (!existingEvent) {
-    throw new ApiError(
-      STATUS_CODES.NOT_FOUND,
-      ERROR_MESSAGES.NOT_FOUND || "Event not found"
-    );
-  }
+async function generateTicketQR(ticketId) {
+  const token = generateTicketToken(ticketId);
+  const url = `${process.env.BASE_URL}/tickets/verify/${ticketId}?token=${token}`;
+  return await QRCode.toDataURL(url);
+}
 
-  const existingShowtime = await Showtime.findById(showtime);
-  if (!existingShowtime) {
-    throw new ApiError(STATUS_CODES.NOT_FOUND, "Showtime not found");
-  }
+const createBooking = asyncHandler(async (req, res, next) => {
+  try {
+    const {
+      event,
+      showtime,
+      date,
+      customerName,
+      customerPhone,
+      tickets,
+      paymentStatus,
+      paymentMethod,
+      paymentPlatform,
+      paymentReference,
+    } = req.body;
 
-  const isAdmin = req.user?.role === "admin";
+    // Basic required field validation
+    if (!event || !showtime || !date || !tickets || !paymentMethod) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        "Missing required booking fields"
+      );
+    }
 
-  if (!isAdmin && paymentMethod !== "online") {
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      ERROR_MESSAGES.REQUIRE_ONLINE_PAYMENT ||
+    // Validate event existence
+    const existingEvent = await Event.findById(event);
+    if (!existingEvent)
+      throw new ApiError(STATUS_CODES.NOT_FOUND, "Event not found");
+
+    // Validate showtime existence
+    const existingShowtime = await Showtime.findById(showtime);
+    if (!existingShowtime)
+      throw new ApiError(STATUS_CODES.NOT_FOUND, "Showtime not found");
+
+    // Check user role
+    const isAdmin = req.user?.role === "admin";
+
+    // Enforce online payment for non-admin users
+    if (!isAdmin && paymentMethod !== "online") {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
         "Users must pay using online method"
-    );
-  }
-
-  if (paymentMethod === "online") {
-    if (!paymentReference) {
-      throw new ApiError(
-        STATUS_CODES.BAD_REQUEST,
-        ERROR_MESSAGES.PAYMENT_REFERENCE_REQUIRED ||
-          "Payment reference is required for online payments"
       );
     }
-    if (!paymentStatus || paymentStatus !== "completed") {
-      throw new ApiError(
-        STATUS_CODES.BAD_REQUEST,
-        ERROR_MESSAGES.REQUIRE_ONLINE_PAYMENT ||
+
+    // Validate online payment details if paymentMethod is online
+    if (paymentMethod === "online") {
+      if (!paymentReference)
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Payment reference required"
+        );
+      if (paymentStatus !== "completed")
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
           "Online payments must be completed"
-      );
+        );
+      if (!paymentPlatform)
+        throw new ApiError(
+          STATUS_CODES.BAD_REQUEST,
+          "Payment platform required"
+        );
+
+      // Prevent duplicate payment references
+      const existingBooking = await Booking.findOne({ paymentReference });
+      if (existingBooking)
+        throw new ApiError(
+          STATUS_CODES.DUPLICATE_ENTRY,
+          "This payment reference has already been used"
+        );
     }
-    if (!paymentPlatform) {
+
+    // Admin booking requires customer info
+    if (isAdmin && (!customerName || !customerPhone)) {
       throw new ApiError(
         STATUS_CODES.BAD_REQUEST,
-        ERROR_MESSAGES.REQUIRED_PAYMENT_PLATFORM ||
-          "Payment platform is required for online payments"
-      );
-    }
-
-    const existingBooking = await Booking.findOne({ paymentReference });
-    if (existingBooking) {
-      throw new ApiError(
-        STATUS_CODES.DUPLICATE_ENTRY,
-        "This payment reference has already been used"
-      );
-    }
-  }
-
-  if (isAdmin && (!customerName || !customerPhone)) {
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      ERROR_MESSAGES.MISSING_NAME_AND_CONTACT ||
         "Customer name and phone are required for admin bookings"
-    );
-  }
+      );
+    }
 
-  const adultTickets = tickets?.adult || 0;
-  const studentTickets = tickets?.student || 0;
-  const totalTicketsRequested = adultTickets + studentTickets;
+    // Calculate total tickets requested
+    const adultTickets = tickets?.adult || 0;
+    const studentTickets = tickets?.student || 0;
+    const totalTicketsRequested = adultTickets + studentTickets;
 
-  // Calculate total booked for this showtime and date
-  const aggregationResult = await Booking.aggregate([
-    {
-      $match: {
-        showtime: existingShowtime._id,
-        date: new Date(date),
+    if (totalTicketsRequested <= 0) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        "At least one ticket must be booked"
+      );
+    }
+
+    const updatedShowtime = await Showtime.findOneAndUpdate(
+      {
+        _id: showtime,
+        seatAvailable: { $gte: totalTicketsRequested },
       },
-    },
-    {
-      $group: {
-        _id: null,
-        totalBooked: {
-          $sum: {
-            $add: [
-              { $ifNull: ["$tickets.adult", 0] },
-              { $ifNull: ["$tickets.student", 0] },
-            ],
-          },
-        },
+      {
+        $inc: { seatAvailable: -totalTicketsRequested },
       },
-    },
-  ]);
-
-  const totalBookedSoFar = aggregationResult[0]?.totalBooked || 0;
-  console.log("total booked so far", totalBookedSoFar);
-  const seatsLeft = existingShowtime.seatCapacity - totalBookedSoFar;
-
-  if (seatsLeft < totalTicketsRequested) {
-    throw new ApiError(
-      STATUS_CODES.BAD_REQUEST,
-      `Only ${seatsLeft} seats are available for this showtime on this date`
+      { new: true }
     );
+
+    if (!updatedShowtime) {
+      throw new ApiError(
+        STATUS_CODES.BAD_REQUEST,
+        `Not enough seats available for this showtime`
+      );
+    }
+
+    const totalAmount =
+      adultTickets * existingEvent.adultTicketPrice +
+      studentTickets * existingEvent.studentTicketPrice;
+
+    // Generate tickets with QR codes
+    const issuedTickets = [];
+    for (let i = 0; i < adultTickets; i++) {
+      const ticketId = new mongoose.Types.ObjectId();
+      const qrCode = await generateTicketQR(ticketId);
+      issuedTickets.push({ ticketId, type: "adult", qrCode });
+    }
+    for (let i = 0; i < studentTickets; i++) {
+      const ticketId = new mongoose.Types.ObjectId();
+      const qrCode = await generateTicketQR(ticketId);
+      issuedTickets.push({ ticketId, type: "student", qrCode });
+    }
+
+    // Create booking document
+    const booking = await Booking.create({
+      event,
+      showtime,
+      date: new Date(date),
+      user: isAdmin ? null : req.user?._id,
+      bookedByAdmin: isAdmin,
+      adminBookedBy: isAdmin ? req.user._id : null,
+      customerName: isAdmin ? customerName : req.user?.fullName,
+      customerPhone: isAdmin ? customerPhone : req.user?.phoneNumber,
+      tickets,
+      totalAmount,
+      paymentStatus,
+      paymentMethod,
+      paymentPlatform: paymentMethod === "online" ? paymentPlatform : null,
+      paymentReference: paymentMethod === "online" ? paymentReference : null,
+      issuedTickets,
+    });
+
+    // Prepare response data
+    const bookingData = booking.toObject();
+    bookingData.availableSeats = updatedShowtime.seatAvailable;
+
+    return res
+      .status(STATUS_CODES.CREATED)
+      .json(
+        new ApiResponse(
+          STATUS_CODES.CREATED,
+          bookingData,
+          "Booking created successfully with tickets"
+        )
+      );
+  } catch (error) {
+    console.error("Create Booking Error:", error);
+    next(error);
   }
-
-  // Create booking
-  const booking = await Booking.create({
-    event,
-    showtime,
-    date: new Date(date),
-    user: isAdmin ? null : req.user?._id,
-    bookedByAdmin: isAdmin,
-    adminBookedBy: isAdmin ? req.user._id : null,
-    customerName: isAdmin ? customerName : req.user?.fullName,
-    customerPhone: isAdmin ? customerPhone : req.user?.phoneNumber,
-    tickets,
-    totalAmount,
-    paymentStatus,
-    paymentMethod,
-    paymentPlatform: paymentMethod === "online" ? paymentPlatform : null,
-    paymentReference: paymentMethod === "online" ? paymentReference : null,
-  });
-
-  // Update totalBookingsSoFar (optional)
-  await Showtime.updateOne(
-    { _id: showtime },
-    { $inc: { totalBookingsSoFar: totalTicketsRequested } }
-  );
-
-  const bookingData = booking.toObject();
-  bookingData.availableSeats = seatsLeft;
-
-  return res
-    .status(STATUS_CODES.CREATED)
-    .json(
-      new ApiResponse(
-        STATUS_CODES.CREATED,
-        bookingData,
-        SUCCESS_MESSAGES.CREATED || "Booking created successfully"
-      )
-    );
 });
 
 const getAllBookings = asyncHandler(async (req, res) => {
@@ -229,52 +242,6 @@ const getAllBookings = asyncHandler(async (req, res) => {
       )
     );
 });
-
-// const getAllBookings = asyncHandler(async (req, res) => {
-//   const { user, event, showtime } = req.query;
-
-//   const filter = {};
-//   if (user) filter.user = user;
-//   if (event) filter.event = event;
-//   if (showtime) filter.showtime = showtime;
-
-//   const bookings = await Booking.find(filter)
-//     .populate("user", "fullName email")
-//     .populate("event", "title")
-//     .populate("adminBookedBy", "fullName email")
-//     .sort({ createdAt: -1 })
-//     .lean();
-
-//   //remove admin details if not booked by admin
-//   const processedBooking = bookings.map((booking) => {
-//     if (!booking.bookedByAdmin) {
-//       delete booking.adminBookedBy;
-//     }
-//     if (booking.event && booking.event.showTimes && booking.showtime?._id) {
-//       const matchedShwotime = booking.event.showTimes.find(
-//         (st) => st._id.toString() === booking.showtime._id.toString()
-//       );
-
-//       if (matchedShwotime) {
-//         booking.showtime = matchedShwotime;
-//       }
-//     }
-
-//     return booking;
-//   });
-
-//   //add showtime details by matchind id:
-
-//   res
-//     .status(200)
-//     .json(
-//       new ApiResponse(
-//         200,
-//         processedBooking,
-//         "Filtered bookings fetched successfully"
-//       )
-//     );
-// });
 
 const updateBookingById = asyncHandler(async (req, res) => {});
 
