@@ -22,7 +22,12 @@ import {
 } from "../controllers/global.controller.js";
 import { getAllTeamMembers } from "../controllers/team.controller.js";
 import { getAllPublications } from "../controllers/publication.controller..js";
-import { getAllEvents } from "../controllers/event.controller.js";
+import {
+  getAllEvents,
+  getOnGoingEvents,
+  getPastEvents,
+  getUpcomingEvents,
+} from "../controllers/event.controller.js";
 import { createBooking } from "../controllers/booking.controller.js";
 import { getAllShowtimes } from "../controllers/showtime.controller.js";
 
@@ -43,8 +48,17 @@ router
 //-------------------------global routes--------------------------------------------
 
 router.route("/getallmembers").get(getAllTeamMembers);
+
+//-----------------------publication routes-------------------------------------
 router.route("/getallpublications").get(getAllPublications);
+
+//-------------------------events routes -----------------------------------------
 router.route("/getallevents").get(getAllEvents);
+router.route("/get-upcoming-events").get(getUpcomingEvents);
+router.route("/get-ongoing-events").get(getOnGoingEvents);
+router.route("/get-past-events").get(getPastEvents);
+
+//-----------------------showtime routes---------------------------------------------
 router.route("/getallshowtimes").get(getAllShowtimes);
 
 //-------------------------protected global routes-------------------------------
