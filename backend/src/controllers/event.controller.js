@@ -550,10 +550,83 @@ const deleteEventById = asyncHandler(async (req, res, next) => {
   }
 });
 
+const getOnGoingEvents = asyncHandler(async (req, res) => {
+  const now = new Date();
+
+  const events = await Event.find({
+    startDate: { $lte: now },
+    endDate: { $gte: now },
+  }).sort({ startDate: 1 });
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        events,
+        "Ongoing events fetched successfully"
+      )
+    );
+});
+
+const getUpcomingEvents = asyncHandler(async (req, res) => {
+  const now = new Date();
+
+  const events = await Event.find({
+    startDate: { $gt: now },
+  }).sort({ startDate: 1 });
+
+  res
+    .status(STATUS_CODES.SUCCESS)
+    .json(
+      new ApiResponse(
+        STATUS_CODES.SUCCESS,
+        events,
+        "Upcoming events fetched successfully"
+      )
+    );
+});
+
+const getPastEvents = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 12;
+  const skip = (page - 1) * limit;
+
+  const now = new Date();
+
+  const filter = {
+    endDate: { $lt: now },
+  };
+
+  const total = await Event.countDocuments(filter);
+  const events = await Event.find(filter)
+    .skip(skip)
+    .limit(limit)
+    .sort({ endDate: -1 });
+
+  res.status(STATUS_CODES.SUCCESS).json(
+    new ApiResponse(
+      STATUS_CODES.SUCCESS,
+      {
+        events,
+        total,
+        page,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page * limit < total,
+        hasPreviousPage: page > 1,
+      },
+      "Past events fetched successfully"
+    )
+  );
+});
+
 export {
   addEvent,
   getAllEvents,
   getEventById,
   updateEventById,
   deleteEventById,
+  getUpcomingEvents,
+  getOnGoingEvents,
+  getPastEvents,
 };
